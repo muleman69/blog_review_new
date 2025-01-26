@@ -26,6 +26,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug - List initial files
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Files in repository:"
+          ls -la
+          echo "Frontend directory:"
+          ls -la frontend
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -36,12 +45,34 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
+          echo "Node version:"
+          node -v
+          echo "NPM version:"
+          npm -v
           npm ci
+          echo "Installed dependencies:"
+          npm list --depth=0
+
+      - name: Debug - Check package.json
+        run: |
+          cd frontend
+          echo "Package.json contents:"
+          cat package.json
 
       - name: Build
         run: |
           cd frontend
+          echo "Starting build process..."
           npm run build
+        env:
+          CI: false
+
+      - name: Debug - Check build output
+        run: |
+          echo "Build output directory:"
+          ls -la frontend/dist
+          echo "Index.html contents:"
+          cat frontend/dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
