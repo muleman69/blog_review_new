@@ -21,16 +21,19 @@ interface EditorIssue {
 }
 
 interface BlogPostEditorProps {
+  content?: string;
   initialContent?: string;
   onChange?: (content: string) => void;
+  issues?: ValidationIssueExtended[];
 }
 
 const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
+  content: externalContent,
   initialContent = '',
   onChange,
+  issues = [],
 }) => {
-  const [content, setContent] = useState(initialContent);
-  const [issues, setIssues] = useState<ValidationIssueExtended[]>([]);
+  const [localContent, setLocalContent] = useState(externalContent || initialContent);
   const [isValidating, setIsValidating] = useState(false);
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
@@ -40,12 +43,12 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   const [progress, setProgress] = useState(0);
   const [readabilityScore, setReadabilityScore] = useState<number>(0);
   const [keywordDensity, setKeywordDensity] = useState<Record<string, number>>({});
-  const debouncedContent = useDebounce(content, 1000);
+  const debouncedContent = useDebounce(localContent, 1000);
 
   const {
     error
   } = useMultiPassValidation({
-    content,
+    content: localContent,
     passes: ValidationService.getValidationPasses(),
     delay: 1000
   });
@@ -62,11 +65,17 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
 
   useEffect(() => {
     // Calculate readability score and keyword density whenever content changes
-    if (content) {
-      calculateReadabilityScore(content);
-      calculateKeywordDensity(content);
+    if (localContent) {
+      calculateReadabilityScore(localContent);
+      calculateKeywordDensity(localContent);
     }
-  }, [content]);
+  }, [localContent]);
+
+  useEffect(() => {
+    if (externalContent !== undefined) {
+      setLocalContent(externalContent);
+    }
+  }, [externalContent]);
 
   const loadImages = async () => {
     setIsLoadingImages(true);
@@ -166,12 +175,12 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
         forceMoveMarkers: true
       }]);
     } else {
-      setContent(content ? `${content}\n${imageText}` : imageText);
+      setLocalContent(localContent ? `${localContent}\n${imageText}` : imageText);
     }
 
     setIsImageUploadOpen(false);
     loadImages();
-  }, [editor, content]);
+  }, [editor, localContent]);
 
   const handleDeleteImage = async (filename: string) => {
     try {
@@ -293,7 +302,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
         return severityOrder[a.severity] - severityOrder[b.severity];
       });
 
-      setIssues(allIssues);
       setProgress(Math.round((allIssues.length / (allIssues.length + customIssues.length)) * 100));
     } catch (error) {
       console.error('Error validating content:', error);
@@ -309,14 +317,14 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
-      setContent(value);
+      setLocalContent(value);
       onChange?.(value);
     }
   };
 
   const handleQuickFix = useCallback((issue: ValidationIssueExtended) => {
     if (issue.quickFix) {
-      const lines = content.split('\n');
+      const lines = localContent.split('\n');
       if (issue.location) {
         const { line, column, length } = issue.location;
         const lineContent = lines[line - 1];
@@ -326,15 +334,14 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
           lineContent.substring(column - 1 + length);
         lines[line - 1] = newLineContent;
         const newContent = lines.join('\n');
-        setContent(newContent);
+        setLocalContent(newContent);
         onChange?.(newContent);
         NotificationService.success('Quick fix applied successfully');
       }
     }
-  }, [content, onChange]);
+  }, [localContent, onChange]);
 
   const handleIgnore = useCallback((issue: ValidationIssueExtended) => {
-    setIssues(currentIssues => currentIssues.filter(i => i !== issue));
     NotificationService.info('Issue ignored');
   }, []);
 
@@ -378,7 +385,7 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
           <Editor
             height="100%"
             defaultLanguage="markdown"
-            value={content}
+            value={localContent}
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
             options={{
@@ -408,7 +415,7 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
       <div className="h-80 overflow-y-auto border-t border-gray-200">
         <EnhancedValidationPanel
           issues={issues}
-          content={content}
+          content={localContent}
           isLoading={isValidating}
           onQuickFix={handleQuickFix}
           onIgnore={handleIgnore}
