@@ -25,7 +25,7 @@ interface BlogPostEditorProps {
   onChange?: (content: string) => void;
 }
 
-export const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
+const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   initialContent = '',
   onChange,
 }) => {
@@ -418,3 +418,5 @@ export const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
     </div>
   );
 };
+
+export default BlogPostEditor;

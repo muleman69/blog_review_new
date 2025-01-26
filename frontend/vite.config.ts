@@ -36,4 +36,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@monaco-editor/react'],
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.ts'],
+  },
 }); 
