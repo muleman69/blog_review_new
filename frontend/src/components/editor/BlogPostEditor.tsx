@@ -7,7 +7,6 @@ import ValidationService, { ValidationIssueExtended, ValidationRule } from '../.
 import NotificationService from '../../services/notificationService';
 import ImageUploadService from '../../services/imageUploadService';
 import { EnhancedValidationPanel } from '../EnhancedValidationPanel';
-import useDebounce from '../../hooks/useDebounce';
 import ImageUpload from './ImageUpload';
 import EditorSidebar from './EditorSidebar';
 
@@ -25,14 +24,11 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   issues = [],
 }) => {
   const [localContent, setLocalContent] = useState(externalContent || initialContent);
-  const [isValidating, setIsValidating] = useState(false);
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
   const [editor, setEditor] = useState<any>(null);
   const [customRules, setCustomRules] = useState<ValidationRule[]>([]);
-  const [progress, setProgress] = useState(0);
   const [readabilityScore, setReadabilityScore] = useState<number>(0);
   const [keywordDensity, setKeywordDensity] = useState<Record<string, number>>({});
-  const debouncedContent = useDebounce(localContent, 1000);
 
   const { error } = useMultiPassValidation({
     content: localContent,
@@ -182,35 +178,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
     NotificationService.success('Custom rule deleted successfully');
   }, []);
 
-  const calculateReadabilityScore = (text: string) => {
-    const words = text.split(/\s+/).length;
-    const sentences = text.split(/[.!?]/).length;
-    const syllables = text.split(/[aeiouy]{1,2}/).length;
-    
-    // Flesch-Kincaid Grade Level formula
-    const score = 206.835 - (1.015 * (words / sentences)) - (84.6 * (syllables / words));
-    setReadabilityScore(Math.max(0, Math.min(100, score)));
-  };
-
-  const calculateKeywordDensity = (text: string) => {
-    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
-    const wordCount = words.length;
-    const density: Record<string, number> = {};
-
-    words.forEach(word => {
-      if (word.length > 3) { // Only count words longer than 3 characters
-        density[word] = (density[word] || 0) + 1;
-      }
-    });
-
-    // Convert counts to percentages
-    Object.keys(density).forEach(word => {
-      density[word] = density[word] / wordCount;
-    });
-
-    setKeywordDensity(density);
-  };
-
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setLocalContent(value);
@@ -237,11 +204,11 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
     }
   }, [localContent, onChange]);
 
-  const handleIgnore = useCallback((issue: ValidationIssueExtended) => {
+  const handleIgnore = useCallback(() => {
     NotificationService.info('Issue ignored');
   }, []);
 
-  const handleLearnMore = useCallback((issue: ValidationIssueExtended) => {
+  const handleLearnMore = useCallback(() => {
     NotificationService.info('Documentation coming soon');
   }, []);
 
@@ -267,15 +234,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
           </div>
         </div>
       )}
-      
-      <div className="mb-4">
-        <div className="h-2 bg-gray-200 rounded-full">
-          <div 
-            className="h-2 bg-blue-600 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
 
       <div className="flex h-[calc(100vh-12rem)]">
         <div className="flex-1 border border-gray-300 rounded-lg overflow-hidden">
@@ -313,7 +271,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
         <EnhancedValidationPanel
           issues={issues}
           content={localContent}
-          isLoading={isValidating}
           onQuickFix={handleQuickFix}
           onIgnore={handleIgnore}
           onLearnMore={handleLearnMore}

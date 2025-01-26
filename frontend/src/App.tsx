@@ -1,14 +1,13 @@
 import { useCallback, useState } from 'react';
 import BlogPostEditor from './components/editor/BlogPostEditor';
 import useBlogValidation from './hooks/useBlogValidation';
-import { ValidationIssueExtended } from './services/validationService';
 
 const App = () => {
   const [content, setContent] = useState('');
-  const { issues, isValidating } = useBlogValidation({
+  const { issues } = useBlogValidation({
     content,
-    onValidationComplete: (validationIssues: ValidationIssueExtended[]) => {
-      console.log('Validation complete:', validationIssues);
+    onValidationComplete: (issues) => {
+      console.log('Validation complete:', issues);
     }
   });
 
