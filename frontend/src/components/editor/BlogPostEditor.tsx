@@ -6,11 +6,10 @@ import useMultiPassValidation from '../../hooks/useMultiPassValidation';
 import ValidationService, { ValidationIssueExtended, ValidationRule } from '../../services/validationService';
 import NotificationService from '../../services/notificationService';
 import ImageUploadService from '../../services/imageUploadService';
-import ProgressIndicator from '../common/ProgressIndicator';
-import ImageUpload from './ImageUpload';
-import EditorSidebar from './EditorSidebar';
 import { EnhancedValidationPanel } from '../EnhancedValidationPanel';
 import useDebounce from '../../hooks/useDebounce';
+import ImageUpload from './ImageUpload';
+import EditorSidebar from './EditorSidebar';
 
 interface BlogPostEditorProps {
   content?: string;
@@ -28,8 +27,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   const [localContent, setLocalContent] = useState(externalContent || initialContent);
   const [isValidating, setIsValidating] = useState(false);
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
-  const [images, setImages] = useState<Array<{ url: string; filename: string }>>([]);
   const [editor, setEditor] = useState<any>(null);
   const [customRules, setCustomRules] = useState<ValidationRule[]>([]);
   const [progress, setProgress] = useState(0);
@@ -37,9 +34,7 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   const [keywordDensity, setKeywordDensity] = useState<Record<string, number>>({});
   const debouncedContent = useDebounce(localContent, 1000);
 
-  const {
-    error
-  } = useMultiPassValidation({
+  const { error } = useMultiPassValidation({
     content: localContent,
     passes: ValidationService.getValidationPasses(),
     delay: 1000
@@ -52,34 +47,10 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
   }, [error]);
 
   useEffect(() => {
-    loadImages();
-  }, []);
-
-  useEffect(() => {
-    // Calculate readability score and keyword density whenever content changes
-    if (localContent) {
-      calculateReadabilityScore(localContent);
-      calculateKeywordDensity(localContent);
-    }
-  }, [localContent]);
-
-  useEffect(() => {
     if (externalContent !== undefined) {
       setLocalContent(externalContent);
     }
   }, [externalContent]);
-
-  const loadImages = async () => {
-    setIsLoadingImages(true);
-    try {
-      const imageList = await ImageUploadService.list();
-      setImages(imageList);
-    } catch (error) {
-      NotificationService.error('Failed to load images');
-    } finally {
-      setIsLoadingImages(false);
-    }
-  };
 
   const handleEditorDidMount: OnMount = useCallback((editorInstance) => {
     setEditor(editorInstance);
@@ -171,22 +142,7 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
     }
 
     setIsImageUploadOpen(false);
-    loadImages();
   }, [editor, localContent]);
-
-  const handleDeleteImage = async (filename: string) => {
-    try {
-      await ImageUploadService.delete(filename);
-      NotificationService.success('Image deleted successfully');
-      loadImages();
-    } catch (error) {
-      NotificationService.error('Failed to delete image');
-    }
-  };
-
-  const handleInsertImage = (url: string) => {
-    handleImageUploadComplete(url, 'markdown');
-  };
 
   const handleInsertCode = useCallback((code: string) => {
     if (editor) {
@@ -255,58 +211,6 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
     setKeywordDensity(density);
   };
 
-  const getEditorDecorations = useCallback(() => {
-    return issues.map(issue => ({
-      range: {
-        startLineNumber: issue.location?.line || 1,
-        startColumn: issue.location?.column || 1,
-        endLineNumber: issue.location?.line || 1,
-        endColumn: (issue.location?.column || 1) + (issue.location?.length || 1)
-      },
-      options: {
-        isWholeLine: !issue.location,
-        className: `validation-${issue.severity === 'high' ? 'error' : 
-                    issue.severity === 'medium' ? 'warning' : 'info'}`,
-        glyphMarginClassName: `glyph-margin-${issue.severity === 'high' ? 'error' : 
-                              issue.severity === 'medium' ? 'warning' : 'info'}`,
-        hoverMessage: { value: `${issue.message}${issue.suggestion ? `\nSuggestion: ${issue.suggestion}` : ''}` }
-      }
-    }));
-  }, [issues]);
-
-  const validateContent = useCallback(async (text: string) => {
-    setIsValidating(true);
-    try {
-      const technicalIssues = await ValidationService.validateTechnical(text);
-      const structureIssues = await ValidationService.validateStructure(text);
-      const standardsIssues = await ValidationService.validateIndustryStandards(text);
-      const readabilityIssues = await ValidationService.validateReadability(text);
-      const customIssues = await ValidationService.validateCustom(text);
-
-      const allIssues = [
-        ...technicalIssues,
-        ...structureIssues,
-        ...standardsIssues,
-        ...readabilityIssues,
-        ...customIssues,
-      ].sort((a, b) => {
-        const severityOrder = { high: 0, medium: 1, low: 2 };
-        return severityOrder[a.severity] - severityOrder[b.severity];
-      });
-
-      setProgress(Math.round((allIssues.length / (allIssues.length + customIssues.length)) * 100));
-    } catch (error) {
-      console.error('Error validating content:', error);
-      NotificationService.error('Failed to validate content');
-    } finally {
-      setIsValidating(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    validateContent(debouncedContent);
-  }, [debouncedContent, validateContent]);
-
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setLocalContent(value);
@@ -365,11 +269,12 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
       )}
       
       <div className="mb-4">
-        <ProgressIndicator
-          total={100}
-          resolved={progress}
-          isLoading={isValidating}
-        />
+        <div className="h-2 bg-gray-200 rounded-full">
+          <div 
+            className="h-2 bg-blue-600 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
 
       <div className="flex h-[calc(100vh-12rem)]">

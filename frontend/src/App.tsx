@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import BlogPostEditor from './components/editor/BlogPostEditor';
 import useBlogValidation from './hooks/useBlogValidation';
-import BlogPostService from './services/blogPostService';
 import { ValidationIssueExtended } from './services/validationService';
 
 const App = () => {
@@ -9,7 +8,7 @@ const App = () => {
   const { issues, isValidating } = useBlogValidation({
     content,
     onValidationComplete: (validationIssues: ValidationIssueExtended[]) => {
-      // Handle validation complete
+      console.log('Validation complete:', validationIssues);
     }
   });
 
