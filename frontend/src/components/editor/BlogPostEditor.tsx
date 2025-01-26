@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Editor, OnMount } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { PhotoIcon } from '@heroicons/react/24/outline';
@@ -6,19 +6,11 @@ import useMultiPassValidation from '../../hooks/useMultiPassValidation';
 import ValidationService, { ValidationIssueExtended, ValidationRule } from '../../services/validationService';
 import NotificationService from '../../services/notificationService';
 import ImageUploadService from '../../services/imageUploadService';
-import LoadingSpinner from '../common/LoadingSpinner';
 import ProgressIndicator from '../common/ProgressIndicator';
 import ImageUpload from './ImageUpload';
-import ImageGallery from './ImageGallery';
 import EditorSidebar from './EditorSidebar';
 import { EnhancedValidationPanel } from '../EnhancedValidationPanel';
 import useDebounce from '../../hooks/useDebounce';
-
-interface EditorIssue {
-  line: number;
-  message: string;
-  severity: 'error' | 'warning' | 'info';
-}
 
 interface BlogPostEditorProps {
   content?: string;

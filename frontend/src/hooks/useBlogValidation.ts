@@ -1,45 +1,39 @@
 import { useState, useEffect } from 'react';
-import { ValidationIssue } from '../services/blogPostService';
-import BlogPostService from '../services/blogPostService';
+import ValidationService, { ValidationIssueExtended } from '../services/validationService';
 import useDebounce from './useDebounce';
 
-interface UseBlogValidationProps {
-  postId: string;
+export interface UseBlogValidationProps {
   content: string;
   delay?: number;
+  onValidationComplete?: (issues: ValidationIssueExtended[]) => void;
 }
 
-interface UseBlogValidationResult {
-  issues: ValidationIssue[];
-  isValidating: boolean;
-  error: Error | null;
-}
-
-function useBlogValidation({
-  postId,
-  content,
-  delay = 1000
-}: UseBlogValidationProps): UseBlogValidationResult {
-  const [issues, setIssues] = useState<ValidationIssue[]>([]);
+export default function useBlogValidation({ 
+  content, 
+  delay = 1000,
+  onValidationComplete 
+}: UseBlogValidationProps) {
+  const [issues, setIssues] = useState<ValidationIssueExtended[]>([]);
   const [isValidating, setIsValidating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const debouncedContent = useDebounce(content, delay);
 
   useEffect(() => {
     const validateContent = async () => {
-      if (!debouncedContent.trim()) {
+      if (!debouncedContent) {
         setIssues([]);
         return;
       }
 
+      setIsValidating(true);
       try {
-        setIsValidating(true);
-        setError(null);
-        const response = await BlogPostService.validate(postId, debouncedContent);
-        setIssues(response.issues);
-      } catch (err) {
-        setError(err as Error);
+        const validationIssues = await ValidationService.validateContent(
+          debouncedContent, 
+          'technical_accuracy'
+        );
+        setIssues(validationIssues);
+        onValidationComplete?.(validationIssues);
+      } catch (error) {
+        console.error('Validation failed:', error);
         setIssues([]);
       } finally {
         setIsValidating(false);
@@ -47,9 +41,7 @@ function useBlogValidation({
     };
 
     validateContent();
-  }, [debouncedContent, postId]);
+  }, [debouncedContent, onValidationComplete]);
 
-  return { issues, isValidating, error };
-}
-
-export default useBlogValidation; 
+  return { issues, isValidating };
+} 
