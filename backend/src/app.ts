@@ -23,32 +23,48 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(config.mongoUri)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => {
-        console.error('MongoDB connection error:', err);
-        process.exit(1); // Exit if we can't connect to MongoDB
-    });
+// Initialize database connections only if URIs are provided
+async function initializeDatabases() {
+    if (config.mongoUri) {
+        try {
+            await mongoose.connect(config.mongoUri);
+            console.log('Connected to MongoDB');
+        } catch (err) {
+            console.error('MongoDB connection error:', err);
+            // Don't crash the app, just log the error
+        }
+    } else {
+        console.log('MongoDB URI not provided, skipping connection');
+    }
 
-// Initialize Redis only if URL is provided
-if (config.redisUrl) {
-    const redisClient = createClient({ url: config.redisUrl });
-    redisClient.connect()
-        .then(() => console.log('Connected to Redis'))
-        .catch((err) => console.error('Redis connection error:', err));
+    if (config.redisUrl) {
+        try {
+            const redisClient = createClient({ url: config.redisUrl });
+            await redisClient.connect();
+            console.log('Connected to Redis');
+        } catch (err) {
+            console.error('Redis connection error:', err);
+            // Don't crash the app, just log the error
+        }
+    } else {
+        console.log('Redis URL not provided, skipping connection');
+    }
 }
 
-// Debug route to check environment
+// Initialize databases but don't wait for them
+initializeDatabases().catch(console.error);
+
+// Debug route
 app.get('/debug', (_req: Request, res: Response) => {
     res.json({
         environment: process.env.NODE_ENV,
-        mongoUri: process.env.MONGO_URI ? 'Set' : 'Not Set',
-        redisUrl: process.env.REDIS_URL ? 'Set' : 'Not Set',
+        mongoUri: config.mongoUri ? 'Set' : 'Not set',
+        redisUrl: config.redisUrl ? 'Set' : 'Not set',
         nodeVersion: process.version,
         platform: process.platform,
         memoryUsage: process.memoryUsage(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        mongodbStatus: mongoose.connection.readyState
     });
 });
 
@@ -58,6 +74,7 @@ app.get('/', (_req: Request, res: Response) => {
         message: 'Blog Review API',
         version: '1.0.0',
         environment: process.env.NODE_ENV,
+        status: 'operational',
         endpoints: {
             health: '/api/health',
             blogPosts: '/api/blog-posts',
@@ -71,7 +88,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
-        mongoConnected: mongoose.connection.readyState === 1
+        mongodbStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     });
 });
 
