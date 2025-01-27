@@ -3,26 +3,26 @@
   "description": "Backend API deployment configuration for TypeScript build",
   "builds": [
     {
-      "src": "package.json",
+      "src": "src/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/debug",
-      "dest": "dist/index.js"
+      "dest": "/src/index.ts"
     },
     {
       "src": "/api/health",
-      "dest": "dist/index.js"
+      "dest": "/src/index.ts"
     },
     {
       "src": "/api/blog-posts(.*)",
-      "dest": "dist/index.js"
+      "dest": "/src/index.ts"
     },
     {
       "src": "/(.*)",
-      "dest": "dist/index.js"
+      "dest": "/src/index.ts"
     }
   ]
 } 
