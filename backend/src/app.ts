@@ -43,16 +43,17 @@ async function initializeDatabases() {
                 minPoolSize: 5,
                 serverSelectionTimeoutMS: 30000,
                 socketTimeoutMS: 45000,
-                family: 4,
+                connectTimeoutMS: 30000,
                 ssl: true,
                 tls: true,
                 authSource: 'admin',
+                retryWrites: true,
+                retryReads: true,
                 serverApi: {
                     version: '1',
                     strict: true,
                     deprecationErrors: true
-                },
-                directConnection: false
+                }
             };
             
             await mongoose.connect(config.mongoUri, mongooseOptions);
@@ -94,27 +95,32 @@ async function initializeDatabases() {
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
-                    connectTimeout: 10000,
-                    keepAlive: 5000,
+                    connectTimeout: 20000,
+                    keepAlive: 10000,
                     reconnectStrategy: (retries) => {
                         console.log(`Redis reconnect attempt ${retries}`);
                         if (retries > 10) {
                             console.error('Max Redis reconnection attempts reached');
-                            return false;
+                            return new Error('Max Redis reconnection attempts reached');
                         }
-                        return Math.min(retries * 100, 3000);
-                    }
-                },
-                // Force IPv4
-                legacyMode: false
+                        return Math.min(retries * 1000, 10000);
+                    },
+                    tls: true,
+                    rejectUnauthorized: false
+                }
             });
+
+            // Log Redis URL format for debugging (without credentials)
+            const sanitizedRedisUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//***:***@');
+            console.log('Redis URL format:', sanitizedRedisUrl);
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
                 if (err instanceof Error) {
                     console.error('Redis error details:', {
                         message: err.message,
-                        stack: err.stack
+                        stack: err.stack,
+                        code: err.cause
                     });
                 }
             });
