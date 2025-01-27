@@ -26,7 +26,7 @@ let redisClient: ReturnType<typeof createClient> | null = null;
 
 async function initializeDatabases() {
     console.log('Starting database initialization...');
-    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Environment:', config.nodeEnv);
     console.log('Node Version:', process.version);
 
     // MongoDB connection
@@ -35,29 +35,9 @@ async function initializeDatabases() {
             const sanitizedUri = config.mongoUri.replace(/\/\/[^@]+@/, '//*****@');
             console.log('Attempting to connect to MongoDB...');
             console.log('MongoDB URI format:', sanitizedUri);
-            console.log('MongoDB connection options:', {
-                serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 45000,
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
-                retryWrites: true,
-                w: 'majority',
-                maxPoolSize: 10,
-                minPoolSize: 5,
-                maxIdleTimeMS: 30000
-            });
+            console.log('MongoDB connection options:', config.mongodb);
 
-            await mongoose.connect(config.mongoUri, {
-                serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 45000,
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
-                retryWrites: true,
-                w: 'majority',
-                maxPoolSize: 10,
-                minPoolSize: 5,
-                maxIdleTimeMS: 30000
-            });
+            await mongoose.connect(config.mongoUri, config.mongodb);
             console.log('MongoDB connected successfully');
             
             // Log MongoDB connection state
@@ -103,25 +83,20 @@ async function initializeDatabases() {
             const sanitizedUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//*****@');
             console.log('Attempting to connect to Redis...');
             console.log('Redis URL format:', sanitizedUrl);
-            console.log('Redis connection options:', {
-                socket: {
-                    connectTimeout: 5000,
-                    reconnectStrategy: 'exponential'
-                }
-            });
+            console.log('Redis connection options:', config.redis);
 
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
                     reconnectStrategy: (retries) => {
                         console.log(`Redis reconnect attempt ${retries}`);
-                        if (retries > 10) {
+                        if (retries > config.redis.maxReconnectAttempts) {
                             console.error('Max Redis reconnection attempts reached');
                             return false;
                         }
                         return Math.min(retries * 100, 3000);
                     },
-                    connectTimeout: 5000
+                    connectTimeout: config.redis.connectTimeout
                 }
             });
 
