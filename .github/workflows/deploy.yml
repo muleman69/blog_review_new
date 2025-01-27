@@ -41,12 +41,12 @@ jobs:
       - name: Build
         run: |
           cd frontend
-          echo "Current NODE_ENV: $NODE_ENV"
           echo "Building application..."
           npm run build
         env:
           CI: false
           NODE_ENV: production
+          VITE_API_URL: https://api.buildableblog.pro
 
       - name: Debug build output
         run: |
@@ -70,7 +70,7 @@ jobs:
           cp index.html 404.html
           # Create _headers file for security headers
           echo "/*
-            Content-Security-Policy: default-src 'self' https://buildableblog.pro; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' http://localhost:3001 https://buildableblog.pro;
+            Content-Security-Policy: default-src 'self' https://buildableblog.pro https://api.buildableblog.pro; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://api.buildableblog.pro;
             X-Frame-Options: DENY
             X-Content-Type-Options: nosniff" > _headers
           # Create CNAME file
