@@ -1,4 +1,5 @@
 {
   "version": 2,
-  "outputDirectory": "backend"
+  "buildCommand": "cd backend && npm install && npm run vercel-build",
+  "outputDirectory": "backend/dist"
 } 
