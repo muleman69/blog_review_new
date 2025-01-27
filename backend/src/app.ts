@@ -8,7 +8,7 @@ import blogPostRoutes from './routes/blogPosts';
 const app = express();
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req: Request, _res: Response, next: NextFunction) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
@@ -79,8 +79,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/blog-posts', blogPostRoutes);
 
 // 404 handler
-app.use((req, res) => {
-    console.log(`404 - Not Found: ${req.method} ${req.path}`);
+app.use((req: Request, res: Response) => {
     res.status(404).json({
         error: 'Not Found',
         message: `Cannot ${req.method} ${req.path}`,
@@ -95,23 +94,14 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Error:', {
-        message: err.message,
-        stack: err.stack,
-        path: _req.path,
-        method: _req.method
-    });
+    console.error('Error:', err);
     
     const statusCode = 500;
     const message = process.env.NODE_ENV === 'production' 
         ? 'Internal Server Error' 
         : err.message;
     
-    res.status(statusCode).json({
-        error: message,
-        path: _req.path,
-        method: _req.method
-    });
+    res.status(statusCode).json({ error: message });
 });
 
 export default app; 

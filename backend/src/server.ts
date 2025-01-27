@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
-import { config } from './config/config';
 import app from './app';
+import config from './config';
 
 const port = config.port;
 
