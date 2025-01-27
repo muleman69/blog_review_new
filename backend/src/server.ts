@@ -36,6 +36,6 @@ redisClient.connect()
     .catch((err) => console.error('Redis connection error:', err));
 
 // Basic health check route
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
 }); 
