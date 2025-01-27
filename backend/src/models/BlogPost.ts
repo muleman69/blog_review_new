@@ -1,5 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IValidationFeedback {
+    type: 'technical_accuracy' | 'industry_standards' | 'content_structure';
+    message: string;
+    suggestion: string;
+    severity: 'high' | 'medium' | 'low';
+    location?: {
+        line: number;
+        column: number;
+    };
+}
+
 export interface IBlogPost extends Document {
     title: string;
     content: string;
@@ -7,6 +18,7 @@ export interface IBlogPost extends Document {
     tags: string[];
     createdAt: Date;
     updatedAt: Date;
+    validationHistory: IValidationFeedback[];
 }
 
 const BlogPostSchema: Schema = new Schema({
@@ -28,6 +40,30 @@ const BlogPostSchema: Schema = new Schema({
     tags: [{
         type: String,
         trim: true
+    }],
+    validationHistory: [{
+        type: {
+            type: String,
+            enum: ['technical_accuracy', 'industry_standards', 'content_structure'],
+            required: true
+        },
+        message: {
+            type: String,
+            required: true
+        },
+        suggestion: {
+            type: String,
+            required: true
+        },
+        severity: {
+            type: String,
+            enum: ['high', 'medium', 'low'],
+            required: true
+        },
+        location: {
+            line: Number,
+            column: Number
+        }
     }]
 }, {
     timestamps: true // Automatically add createdAt and updatedAt fields
