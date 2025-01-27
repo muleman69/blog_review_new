@@ -40,12 +40,35 @@ async function initializeDatabases() {
     // Redis connection
     if (config.redisUrl) {
         try {
-            redisClient = createClient({ url: config.redisUrl });
-            redisClient.on('error', (err) => console.error('Redis client error:', err));
+            console.log('Attempting to connect to Redis...');
+            redisClient = createClient({
+                url: config.redisUrl,
+                socket: {
+                    reconnectStrategy: (retries) => {
+                        console.log(`Redis reconnect attempt ${retries}`);
+                        if (retries > 10) {
+                            console.error('Max Redis reconnection attempts reached');
+                            return false;
+                        }
+                        return Math.min(retries * 100, 3000);
+                    }
+                }
+            });
+
+            redisClient.on('error', (err) => {
+                console.error('Redis client error:', err);
+                console.error('Redis URL format (sanitized):', config.redisUrl.replace(/\/\/.*@/, '//***@'));
+            });
+
+            redisClient.on('connect', () => {
+                console.log('Redis client connected');
+            });
+
             await redisClient.connect();
-            console.log('Connected to Redis');
+            console.log('Redis connection established');
         } catch (err) {
             console.error('Redis connection error:', err);
+            console.error('Redis URL format (sanitized):', config.redisUrl.replace(/\/\/.*@/, '//***@'));
             redisClient = null;
         }
     } else {
@@ -56,6 +79,10 @@ async function initializeDatabases() {
 // Initialize databases but don't wait for them
 initializeDatabases().catch((err) => {
     console.error('Failed to initialize databases:', err);
+    console.error('Error details:', err.message);
+    if (err.cause) {
+        console.error('Cause:', err.cause);
+    }
 });
 
 // Debug route
@@ -84,7 +111,7 @@ app.get('/', (_req: Request, res: Response) => {
 
     res.json({ 
         message: 'Blog Review API',
-        version: '1.0.0',
+        version: '1.0.1',
         environment: process.env.NODE_ENV,
         status: 'operational',
         databases: dbStatus,
