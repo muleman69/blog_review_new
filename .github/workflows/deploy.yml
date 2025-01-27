@@ -26,15 +26,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug - List initial files
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Files in repository:"
-          ls -la
-          echo "Frontend directory:"
-          ls -la frontend
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -45,39 +36,35 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          echo "Node version:"
-          node -v
-          echo "NPM version:"
-          npm -v
           npm ci
-          echo "Installed dependencies:"
-          npm list --depth=0
 
-      - name: Debug - Check package.json
+      # Create CNAME before build to ensure it's included
+      - name: Create CNAME
+        run: |
+          echo "buildableblog.pro" > frontend/public/CNAME
+
+      # Copy additional required files
+      - name: Copy public files
         run: |
           cd frontend
-          echo "Package.json contents:"
-          cat package.json
+          cp public/manifest.json public/robots.txt public/favicon.ico dist/ || true
 
       - name: Build
         run: |
           cd frontend
-          echo "Starting build process..."
           npm run build
         env:
           CI: false
-          VITE_APP_BASE_URL: 'https://buildableblog.pro'
+          VITE_BASE_URL: '/'
 
-      - name: Debug - Check build output
+      - name: Verify build output
         run: |
-          echo "Build output directory:"
+          echo "Build output structure:"
           ls -la frontend/dist
-          echo "Index.html contents:"
-          cat frontend/dist/index.html
-
-      - name: Create CNAME
-        run: |
-          echo "buildableblog.pro" > frontend/dist/CNAME
+          echo "Asset directory:"
+          ls -la frontend/dist/assets
+          echo "Checking index.html paths:"
+          grep -n "/assets/" frontend/dist/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
