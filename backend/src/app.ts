@@ -39,10 +39,10 @@ async function initializeDatabases() {
             mongoose.set('debug', config.nodeEnv === 'development');
             
             const mongooseOptions: ConnectOptions = {
-                maxPoolSize: config.mongodb.maxPoolSize,
-                minPoolSize: config.mongodb.minPoolSize,
-                serverSelectionTimeoutMS: config.mongodb.serverSelectionTimeoutMS,
-                socketTimeoutMS: config.mongodb.socketTimeoutMS,
+                maxPoolSize: 10,
+                minPoolSize: 5,
+                serverSelectionTimeoutMS: 30000,
+                socketTimeoutMS: 45000,
                 family: 4,
                 ssl: true,
                 tls: true,
@@ -51,23 +51,30 @@ async function initializeDatabases() {
                     version: '1',
                     strict: true,
                     deprecationErrors: true
-                }
+                },
+                directConnection: false
             };
             
             await mongoose.connect(config.mongoUri, mongooseOptions);
-            
             console.log('MongoDB connected successfully');
             
             mongoose.connection.on('error', (err) => {
                 console.error('MongoDB connection error:', err);
+                if (err instanceof Error) {
+                    console.error('Error details:', err.message);
+                    console.error('Stack trace:', err.stack);
+                }
             });
 
             mongoose.connection.on('disconnected', () => {
-                console.log('MongoDB disconnected');
+                console.log('MongoDB disconnected, attempting to reconnect...');
+                mongoose.connect(config.mongoUri, mongooseOptions).catch(err => {
+                    console.error('MongoDB reconnection failed:', err);
+                });
             });
 
             mongoose.connection.on('reconnected', () => {
-                console.log('MongoDB reconnected');
+                console.log('MongoDB reconnected successfully');
             });
 
         } catch (error) {
@@ -77,72 +84,74 @@ async function initializeDatabases() {
                 console.error('Stack trace:', error.stack);
             }
         }
-    } else {
-        console.log('No MongoDB URI provided, skipping connection');
     }
 
     // Redis connection
     if (config.redisUrl) {
         try {
-            const sanitizedUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//*****@');
             console.log('Attempting to connect to Redis...');
-            console.log('Redis URL format:', sanitizedUrl);
-            console.log('Redis connection options:', config.redis);
-
+            
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
+                    connectTimeout: 10000,
+                    keepAlive: 5000,
                     reconnectStrategy: (retries) => {
                         console.log(`Redis reconnect attempt ${retries}`);
-                        if (retries > config.redis.maxReconnectAttempts) {
+                        if (retries > 10) {
                             console.error('Max Redis reconnection attempts reached');
                             return false;
                         }
                         return Math.min(retries * 100, 3000);
-                    },
-                    connectTimeout: config.redis.connectTimeout
-                }
+                    }
+                },
+                // Force IPv4
+                legacyMode: false
             });
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
-                console.error('Redis error details:', {
-                    name: err.name,
-                    message: err.message,
-                    stack: err.stack
-                });
+                if (err instanceof Error) {
+                    console.error('Redis error details:', {
+                        message: err.message,
+                        stack: err.stack
+                    });
+                }
             });
 
             redisClient.on('connect', () => {
-                console.log('Redis client connected');
-                console.log('Redis connection details:', {
-                    isOpen: redisClient?.isOpen,
-                    isReady: redisClient?.isReady
-                });
+                console.log('Redis client connected successfully');
             });
 
-            redisClient.on('ready', () => console.log('Redis client ready for commands'));
-            redisClient.on('reconnecting', () => console.log('Redis client reconnecting...'));
-            redisClient.on('end', () => console.log('Redis client connection ended'));
+            redisClient.on('ready', () => {
+                console.log('Redis client ready for commands');
+            });
+
+            redisClient.on('reconnecting', () => {
+                console.log('Redis client reconnecting...');
+            });
 
             await redisClient.connect();
-            console.log('Redis connection established successfully');
-        } catch (err: any) {
-            console.error('Redis connection error:', err);
-            console.error('Redis connection failure details:', {
-                name: err.name,
-                message: err.message,
-                stack: err.stack
-            });
+            console.log('Redis connection established');
+        } catch (error) {
+            console.error('Redis connection error:', error);
+            if (error instanceof Error) {
+                console.error('Error details:', error.message);
+                console.error('Stack trace:', error.stack);
+            }
             redisClient = null;
         }
-    } else {
-        console.log('Redis URL not provided, skipping connection');
     }
 }
 
 // Initialize databases
-initializeDatabases();
+initializeDatabases().catch(error => {
+    console.error('Failed to initialize databases:', error);
+    if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+    }
+});
 
 // Routes
 app.get('/', (_req: Request, res: Response) => {
@@ -164,7 +173,8 @@ app.get('/debug', (_req: Request, res: Response) => {
             name: mongoose.connection.name
         },
         redis: {
-            connected: redisClient?.isOpen || false
+            connected: redisClient?.isOpen || false,
+            ready: redisClient?.isReady || false
         }
     });
 });
