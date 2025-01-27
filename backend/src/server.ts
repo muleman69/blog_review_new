@@ -3,8 +3,22 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
 import { config } from './config/config';
+import app from './app';
 
-const app = express();
+const port = config.port;
+
+const server = app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+    });
+});
 
 // Middleware
 app.use(cors());
@@ -24,9 +38,4 @@ redisClient.connect()
 // Basic health check route
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
-});
-
-// Start server
-app.listen(config.port, () => {
-    console.log(`Server running on port ${config.port}`);
 }); 

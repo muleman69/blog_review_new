@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
-import { config } from './config/config';
-import blogPostRoutes from './routes/blogPost';
+import config from './config';
+import blogPostRoutes from './routes/blogPosts';
 
 const app = express();
 
@@ -40,18 +40,20 @@ if (config.redisUrl) {
 }
 
 // Debug route to check environment
-app.get('/debug', (req, res) => {
+app.get('/debug', (_req: Request, res: Response) => {
     res.json({
         environment: process.env.NODE_ENV,
-        mongoConnected: mongoose.connection.readyState === 1,
-        corsOrigins: process.env.NODE_ENV === 'production' 
-            ? ['https://buildableblog.pro']
-            : ['http://localhost:3000']
+        mongoUri: process.env.MONGO_URI ? 'Set' : 'Not Set',
+        redisUrl: process.env.REDIS_URL ? 'Set' : 'Not Set',
+        nodeVersion: process.version,
+        platform: process.platform,
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
     });
 });
 
 // Root route
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
     res.json({ 
         message: 'Blog Review API',
         version: '1.0.0',
@@ -65,7 +67,7 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -92,19 +94,23 @@ app.use((req, res) => {
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', {
         message: err.message,
         stack: err.stack,
-        path: req.path,
-        method: req.method
+        path: _req.path,
+        method: _req.method
     });
     
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
-        path: req.path,
-        method: req.method
+    const statusCode = 500;
+    const message = process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
+        : err.message;
+    
+    res.status(statusCode).json({
+        error: message,
+        path: _req.path,
+        method: _req.method
     });
 });
 

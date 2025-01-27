@@ -1,31 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../config/config';
+import config from '../config';
 import { User } from '../models/User';
 
 interface AuthRequest extends Request {
-    user?: any;
+    user?: {
+        id: string;
+        email: string;
+    };
 }
 
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
         
         if (!token) {
-            throw new Error();
+            return res.status(401).json({ error: 'No authentication token provided' });
         }
 
-        const decoded = jwt.verify(token, config.jwtSecret) as { _id: string };
-        const user = await User.findOne({ _id: decoded._id });
-
-        if (!user) {
-            throw new Error();
-        }
-
-        req.user = user;
+        const decoded = jwt.verify(token, config.jwtSecret) as { id: string; email: string };
+        req.user = decoded;
         next();
     } catch (error) {
-        res.status(401).json({ error: 'Please authenticate' });
+        res.status(401).json({ error: 'Invalid authentication token' });
     }
 };
 
