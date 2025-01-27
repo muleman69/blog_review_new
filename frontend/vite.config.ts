@@ -6,7 +6,7 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/blog_review_new/',
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -14,17 +14,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    assetsDir: 'assets',
     sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          'monaco-editor': ['monaco-editor'],
-          'vendor': [
-            'react',
-            'react-dom',
-            '@headlessui/react',
-            '@heroicons/react',
-          ],
+          vendor: ['react', 'react-dom'],
+          editor: ['@monaco-editor/react'],
         },
       },
     },
