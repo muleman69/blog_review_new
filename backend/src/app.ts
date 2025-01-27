@@ -15,36 +15,38 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 // Middleware
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://buildableblog.pro']
-        : ['http://localhost:3000'],
+    origin: config.corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true
 }));
 app.use(express.json());
 
 // Initialize database connections only if URIs are provided
+let redisClient: ReturnType<typeof createClient> | null = null;
+
 async function initializeDatabases() {
+    // MongoDB connection
     if (config.mongoUri) {
         try {
             await mongoose.connect(config.mongoUri);
             console.log('Connected to MongoDB');
         } catch (err) {
             console.error('MongoDB connection error:', err);
-            // Don't crash the app, just log the error
         }
     } else {
         console.log('MongoDB URI not provided, skipping connection');
     }
 
+    // Redis connection
     if (config.redisUrl) {
         try {
-            const redisClient = createClient({ url: config.redisUrl });
+            redisClient = createClient({ url: config.redisUrl });
+            redisClient.on('error', (err) => console.error('Redis client error:', err));
             await redisClient.connect();
             console.log('Connected to Redis');
         } catch (err) {
             console.error('Redis connection error:', err);
-            // Don't crash the app, just log the error
+            redisClient = null;
         }
     } else {
         console.log('Redis URL not provided, skipping connection');
@@ -52,10 +54,14 @@ async function initializeDatabases() {
 }
 
 // Initialize databases but don't wait for them
-initializeDatabases().catch(console.error);
+initializeDatabases().catch((err) => {
+    console.error('Failed to initialize databases:', err);
+});
 
 // Debug route
-app.get('/debug', (_req: Request, res: Response) => {
+app.get('/debug', async (_req: Request, res: Response) => {
+    const redisStatus = redisClient?.isOpen ?? false;
+    
     res.json({
         environment: process.env.NODE_ENV,
         mongoUri: config.mongoUri ? 'Set' : 'Not set',
@@ -64,17 +70,24 @@ app.get('/debug', (_req: Request, res: Response) => {
         platform: process.platform,
         memoryUsage: process.memoryUsage(),
         uptime: process.uptime(),
-        mongodbStatus: mongoose.connection.readyState
+        mongodbStatus: mongoose.connection.readyState,
+        redisStatus: redisStatus ? 'connected' : 'disconnected'
     });
 });
 
 // Root route
 app.get('/', (_req: Request, res: Response) => {
+    const dbStatus = {
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        redis: redisClient?.isOpen ?? false ? 'connected' : 'disconnected'
+    };
+
     res.json({ 
         message: 'Blog Review API',
         version: '1.0.0',
         environment: process.env.NODE_ENV,
         status: 'operational',
+        databases: dbStatus,
         endpoints: {
             health: '/api/health',
             blogPosts: '/api/blog-posts',
@@ -85,10 +98,15 @@ app.get('/', (_req: Request, res: Response) => {
 
 // Health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
+    const dbStatus = {
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        redis: redisClient?.isOpen ?? false ? 'connected' : 'disconnected'
+    };
+
     res.json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
-        mongodbStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+        databases: dbStatus
     });
 });
 
