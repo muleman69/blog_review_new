@@ -1,30 +1,47 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import App from './App';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import BlogPostEditor from './components/editor/BlogPostEditor';
+import ErrorBoundary from './components/common/ErrorBoundary';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <App />,
+    errorElement: <ErrorBoundary><div>Route Error</div></ErrorBoundary>,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/editor" replace />,
+      },
+      {
+        path: 'login',
+        element: <LoginForm />,
+      },
+      {
+        path: 'register',
+        element: <RegisterForm />,
+      },
+      {
+        path: 'editor',
+        element: (
+          <ProtectedRoute>
+            <BlogPostEditor />
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
+]);
 
 const Router: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}>
-          <Route index element={<Navigate to="/editor" replace />} />
-          <Route path="login" element={<LoginForm />} />
-          <Route path="register" element={<RegisterForm />} />
-          <Route
-            path="editor"
-            element={
-              <ProtectedRoute>
-                <BlogPostEditor />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
   );
 };
 
