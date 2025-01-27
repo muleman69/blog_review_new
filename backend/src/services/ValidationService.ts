@@ -19,8 +19,12 @@ interface ValidationResult {
     content_structure: ValidationFeedback[];
 }
 
-const redisClient = createClient({ url: config.redisUrl });
-redisClient.connect();
+// Initialize Redis only if URL is provided
+const redisClient = config.redisUrl ? createClient({ url: config.redisUrl }) : null;
+if (redisClient) {
+    redisClient.connect()
+        .catch((err) => console.error('Redis connection error:', err));
+}
 
 export class ValidationService {
     private static async validateChunk(content: string): Promise<ValidationResult> {
@@ -51,11 +55,13 @@ export class ValidationService {
     }
 
     private static async getCachedValidation(key: string): Promise<ValidationResult | null> {
+        if (!redisClient) return null;
         const cached = await redisClient.get(key);
         return cached ? JSON.parse(cached) : null;
     }
 
     private static async cacheValidation(key: string, result: ValidationResult): Promise<void> {
+        if (!redisClient) return;
         await redisClient.set(key, JSON.stringify(result), {
             EX: 3600 // Cache for 1 hour
         });

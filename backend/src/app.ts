@@ -16,11 +16,13 @@ mongoose.connect(config.mongoUri)
     .then(() => console.log('Connected to MongoDB'))
     .catch((err) => console.error('MongoDB connection error:', err));
 
-// Initialize Redis
-const redisClient = createClient({ url: config.redisUrl });
-redisClient.connect()
-    .then(() => console.log('Connected to Redis'))
-    .catch((err) => console.error('Redis connection error:', err));
+// Initialize Redis only if URL is provided
+if (config.redisUrl) {
+    const redisClient = createClient({ url: config.redisUrl });
+    redisClient.connect()
+        .then(() => console.log('Connected to Redis'))
+        .catch((err) => console.error('Redis connection error:', err));
+}
 
 // Root route
 app.get('/', (req, res) => {
