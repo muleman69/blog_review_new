@@ -2,26 +2,28 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "src/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/debug",
-      "dest": "/dist/index.js"
+      "dest": "src/index.ts"
     },
     {
       "src": "/api/health",
-      "dest": "/dist/index.js"
+      "dest": "src/index.ts"
     },
     {
       "src": "/api/blog-posts(.*)",
-      "dest": "/dist/index.js"
+      "dest": "src/index.ts"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/index.js"
+      "dest": "src/index.ts"
     }
-  ]
+  ],
+  "installCommand": "npm install",
+  "buildCommand": "npm run vercel-build"
 } 
