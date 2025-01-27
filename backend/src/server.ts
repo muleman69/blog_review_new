@@ -22,14 +22,18 @@ server.on('error', (error: Error) => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Promise Rejection:', reason);
+    console.error('Promise:', promise);
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error: Error) => {
+process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
-    process.exit(1);
+    // Give the server time to finish current requests before exiting
+    server.close(() => {
+        process.exit(1);
+    });
 });
 
 // Graceful shutdown

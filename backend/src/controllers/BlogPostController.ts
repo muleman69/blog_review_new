@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { BlogPost } from '../models/BlogPost';
+import BlogPost from '../models/BlogPost';
 import { ValidationService } from '../services/ValidationService';
 
 interface AuthRequest extends Request {
