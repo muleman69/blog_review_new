@@ -38,33 +38,34 @@ jobs:
           cd frontend
           npm ci
 
-      # Create CNAME before build to ensure it's included
-      - name: Create CNAME
-        run: |
-          echo "buildableblog.pro" > frontend/public/CNAME
-
-      # Copy additional required files
-      - name: Copy public files
-        run: |
-          cd frontend
-          cp public/manifest.json public/robots.txt public/favicon.ico dist/ || true
-
       - name: Build
         run: |
           cd frontend
+          echo "Current NODE_ENV: $NODE_ENV"
+          echo "Building application..."
           npm run build
         env:
           CI: false
-          VITE_BASE_URL: '/'
+          NODE_ENV: production
 
-      - name: Verify build output
+      - name: Debug build output
         run: |
-          echo "Build output structure:"
-          ls -la frontend/dist
-          echo "Asset directory:"
-          ls -la frontend/dist/assets
-          echo "Checking index.html paths:"
-          grep -n "/assets/" frontend/dist/index.html
+          echo "Complete dist directory structure:"
+          cd frontend/dist
+          find . -type f
+          
+          echo "\nContents of index.html:"
+          cat index.html
+          
+          echo "\nChecking for asset references:"
+          grep -r "/assets/" .
+          
+          echo "\nVerifying asset files exist:"
+          ls -la assets/
+
+      - name: Create CNAME
+        run: |
+          echo "buildableblog.pro" > frontend/dist/CNAME
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
