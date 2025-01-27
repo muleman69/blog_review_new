@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import BlogPost, { IBlogPost } from '../models/BlogPost';
+import BlogPost from '../models/BlogPost';
 
 const router = Router();
 
@@ -7,10 +7,10 @@ const router = Router();
 router.get('/', async (_req: Request, res: Response) => {
     try {
         const posts = await BlogPost.find().sort({ createdAt: -1 });
-        res.json(posts);
+        return res.json(posts);
     } catch (error) {
         console.error('Error fetching blog posts:', error);
-        res.status(500).json({ error: 'Failed to fetch blog posts' });
+        return res.status(500).json({ error: 'Failed to fetch blog posts' });
     }
 });
 
@@ -21,10 +21,10 @@ router.get('/:id', async (req: Request, res: Response) => {
         if (!post) {
             return res.status(404).json({ error: 'Blog post not found' });
         }
-        res.json(post);
+        return res.json(post);
     } catch (error) {
         console.error('Error fetching blog post:', error);
-        res.status(500).json({ error: 'Failed to fetch blog post' });
+        return res.status(500).json({ error: 'Failed to fetch blog post' });
     }
 });
 
@@ -39,13 +39,13 @@ router.post('/', async (req: Request, res: Response) => {
             tags: tags || []
         });
         await post.save();
-        res.status(201).json(post);
+        return res.status(201).json(post);
     } catch (error: any) {
         console.error('Error creating blog post:', error);
         if (error.name === 'ValidationError') {
             return res.status(400).json({ error: error.message });
         }
-        res.status(500).json({ error: 'Failed to create blog post' });
+        return res.status(500).json({ error: 'Failed to create blog post' });
     }
 });
 
@@ -61,13 +61,13 @@ router.put('/:id', async (req: Request, res: Response) => {
         if (!post) {
             return res.status(404).json({ error: 'Blog post not found' });
         }
-        res.json(post);
+        return res.json(post);
     } catch (error: any) {
         console.error('Error updating blog post:', error);
         if (error.name === 'ValidationError') {
             return res.status(400).json({ error: error.message });
         }
-        res.status(500).json({ error: 'Failed to update blog post' });
+        return res.status(500).json({ error: 'Failed to update blog post' });
     }
 });
 
@@ -78,10 +78,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
         if (!post) {
             return res.status(404).json({ error: 'Blog post not found' });
         }
-        res.json({ message: 'Blog post deleted successfully' });
+        return res.json({ message: 'Blog post deleted successfully' });
     } catch (error) {
         console.error('Error deleting blog post:', error);
-        res.status(500).json({ error: 'Failed to delete blog post' });
+        return res.status(500).json({ error: 'Failed to delete blog post' });
     }
 });
 

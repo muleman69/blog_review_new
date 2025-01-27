@@ -25,26 +25,58 @@ app.use(express.json());
 let redisClient: ReturnType<typeof createClient> | null = null;
 
 async function initializeDatabases() {
+    console.log('Starting database initialization...');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Node Version:', process.version);
+
     // MongoDB connection
     if (config.mongoUri) {
         try {
-            console.log('Attempting to connect to MongoDB with URI:', config.mongoUri.replace(/\/\/[^@]+@/, '//*****@'));
+            const sanitizedUri = config.mongoUri.replace(/\/\/[^@]+@/, '//*****@');
+            console.log('Attempting to connect to MongoDB...');
+            console.log('MongoDB URI format:', sanitizedUri);
+            console.log('MongoDB connection options:', {
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 45000
+            });
+
             await mongoose.connect(config.mongoUri, {
-                serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
-                socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 45000,
             });
             console.log('MongoDB connected successfully');
             
             // Log MongoDB connection state
-            mongoose.connection.on('connected', () => console.log('MongoDB connection established'));
-            mongoose.connection.on('error', err => console.error('MongoDB connection error:', err));
-            mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
-        } catch (err) {
+            mongoose.connection.on('connected', () => {
+                console.log('MongoDB connection established');
+                console.log('MongoDB connection state:', mongoose.connection.readyState);
+                console.log('MongoDB connection details:', {
+                    host: mongoose.connection.host,
+                    port: mongoose.connection.port,
+                    name: mongoose.connection.name
+                });
+            });
+
+            mongoose.connection.on('error', err => {
+                console.error('MongoDB connection error:', err);
+                console.error('MongoDB error details:', {
+                    code: err.code,
+                    name: err.name,
+                    message: err.message
+                });
+            });
+
+            mongoose.connection.on('disconnected', () => {
+                console.log('MongoDB disconnected');
+                console.log('Attempting to reconnect to MongoDB...');
+            });
+        } catch (err: any) {
             console.error('MongoDB connection error:', err);
-            console.error('MongoDB connection details:', {
-                uri: config.mongoUri.replace(/\/\/[^@]+@/, '//*****@'),
-                environment: process.env.NODE_ENV,
-                nodeVersion: process.version
+            console.error('MongoDB connection failure details:', {
+                code: err.code,
+                name: err.name,
+                message: err.message,
+                stack: err.stack
             });
         }
     } else {
@@ -54,7 +86,16 @@ async function initializeDatabases() {
     // Redis connection
     if (config.redisUrl) {
         try {
-            console.log('Attempting to connect to Redis with URL:', config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'));
+            const sanitizedUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//*****@');
+            console.log('Attempting to connect to Redis...');
+            console.log('Redis URL format:', sanitizedUrl);
+            console.log('Redis connection options:', {
+                socket: {
+                    connectTimeout: 5000,
+                    reconnectStrategy: 'exponential'
+                }
+            });
+
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
@@ -66,32 +107,39 @@ async function initializeDatabases() {
                         }
                         return Math.min(retries * 100, 3000);
                     },
-                    connectTimeout: 5000, // Connection timeout of 5 seconds
+                    connectTimeout: 5000
                 }
             });
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
-                console.error('Redis connection details:', {
-                    url: config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'),
-                    environment: process.env.NODE_ENV,
-                    nodeVersion: process.version
+                console.error('Redis error details:', {
+                    name: err.name,
+                    message: err.message,
+                    stack: err.stack
                 });
             });
 
-            redisClient.on('connect', () => console.log('Redis client connected'));
-            redisClient.on('ready', () => console.log('Redis client ready'));
-            redisClient.on('reconnecting', () => console.log('Redis client reconnecting'));
+            redisClient.on('connect', () => {
+                console.log('Redis client connected');
+                console.log('Redis connection details:', {
+                    isOpen: redisClient?.isOpen,
+                    isReady: redisClient?.isReady
+                });
+            });
+
+            redisClient.on('ready', () => console.log('Redis client ready for commands'));
+            redisClient.on('reconnecting', () => console.log('Redis client reconnecting...'));
             redisClient.on('end', () => console.log('Redis client connection ended'));
 
             await redisClient.connect();
-            console.log('Redis connection established');
-        } catch (err) {
+            console.log('Redis connection established successfully');
+        } catch (err: any) {
             console.error('Redis connection error:', err);
-            console.error('Redis connection details:', {
-                url: config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'),
-                environment: process.env.NODE_ENV,
-                nodeVersion: process.version
+            console.error('Redis connection failure details:', {
+                name: err.name,
+                message: err.message,
+                stack: err.stack
             });
             redisClient = null;
         }
@@ -100,10 +148,11 @@ async function initializeDatabases() {
     }
 }
 
-// Initialize databases and handle any errors
+// Initialize databases with comprehensive error handling
 initializeDatabases().catch((err) => {
     console.error('Failed to initialize databases:', err);
-    console.error('Error details:', {
+    console.error('Initialization error details:', {
+        name: err.name,
         message: err.message,
         stack: err.stack,
         cause: err.cause,
