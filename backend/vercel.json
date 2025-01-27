@@ -3,7 +3,7 @@
   "description": "Backend API deployment configuration for TypeScript build",
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "package.json",
       "use": "@vercel/node"
     }
   ],
