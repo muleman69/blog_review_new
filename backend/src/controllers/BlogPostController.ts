@@ -48,16 +48,38 @@ export class BlogPostController {
             
             // Update validation history
             const feedback: IValidationFeedback[] = [
-                ...validationResult.technical_accuracy.map(f => ({ ...f, type: 'technical_accuracy' as ValidationType })),
-                ...validationResult.industry_standards.map(f => ({ ...f, type: 'industry_standards' as ValidationType })),
-                ...validationResult.content_structure.map(f => ({ ...f, type: 'content_structure' as ValidationType }))
+                ...validationResult.technical_accuracy.map(f => ({
+                    ...f,
+                    type: 'technical_accuracy' as const,
+                    timestamp: new Date(),
+                    status: 'completed' as const,
+                    validatedBy: (req as AuthRequest).user._id
+                })),
+                ...validationResult.industry_standards.map(f => ({
+                    ...f,
+                    type: 'industry_standards' as const,
+                    timestamp: new Date(),
+                    status: 'completed' as const,
+                    validatedBy: (req as AuthRequest).user._id
+                })),
+                ...validationResult.content_structure.map(f => ({
+                    ...f,
+                    type: 'content_structure' as const,
+                    timestamp: new Date(),
+                    status: 'completed' as const,
+                    validatedBy: (req as AuthRequest).user._id
+                }))
             ];
 
             blogPost.validationHistory.push({
+                type: 'technical_accuracy',
+                message: 'Validation completed',
+                suggestion: 'Review feedback for improvements',
+                severity: 'low',
                 timestamp: new Date(),
                 status: 'completed',
-                feedback,
-                validatedBy: (req as AuthRequest).user._id
+                validatedBy: (req as AuthRequest).user._id,
+                feedback
             });
 
             await blogPost.save();
