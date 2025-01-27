@@ -22,13 +22,25 @@ redisClient.connect()
     .then(() => console.log('Connected to Redis'))
     .catch((err) => console.error('Redis connection error:', err));
 
-// Routes
-app.use('/api/blog-posts', blogPostRoutes);
+// Root route
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Blog Review API',
+        version: '1.0.0',
+        endpoints: {
+            health: '/api/health',
+            blogPosts: '/api/blog-posts'
+        }
+    });
+});
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
 });
+
+// Routes
+app.use('/api/blog-posts', blogPostRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
