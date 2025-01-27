@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
+import mongoose, { ConnectOptions } from 'mongoose';
 import { createClient } from 'redis';
 import config from './config';
 import blogPostRoutes from './routes/blogPosts';
@@ -38,14 +38,23 @@ async function initializeDatabases() {
 
             mongoose.set('debug', config.nodeEnv === 'development');
             
-            await mongoose.connect(config.mongoUri, {
-                ...config.mongodb,
+            const mongooseOptions: ConnectOptions = {
+                maxPoolSize: config.mongodb.maxPoolSize,
+                minPoolSize: config.mongodb.minPoolSize,
+                serverSelectionTimeoutMS: config.mongodb.serverSelectionTimeoutMS,
+                socketTimeoutMS: config.mongodb.socketTimeoutMS,
+                family: 4,
+                ssl: true,
+                tls: true,
+                authSource: 'admin',
                 serverApi: {
                     version: '1',
                     strict: true,
                     deprecationErrors: true
                 }
-            });
+            };
+            
+            await mongoose.connect(config.mongoUri, mongooseOptions);
             
             console.log('MongoDB connected successfully');
             

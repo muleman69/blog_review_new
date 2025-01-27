@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import BlogPost from '../models/BlogPost';
+import mongoose from 'mongoose';
+import BlogPost, { IValidationFeedback } from '../models/BlogPost';
 import { ValidationService } from '../services/ValidationService';
 
 interface AuthRequest extends Request {
@@ -7,17 +8,6 @@ interface AuthRequest extends Request {
 }
 
 type ValidationType = 'technical_accuracy' | 'industry_standards' | 'content_structure';
-
-interface IValidationFeedback {
-    type: ValidationType;
-    message: string;
-    suggestion: string;
-    severity: 'high' | 'medium' | 'low';
-    location?: {
-        line: number;
-        column: number;
-    };
-}
 
 export class BlogPostController {
     public static async create(req: AuthRequest, res: Response): Promise<void> {
@@ -49,25 +39,34 @@ export class BlogPostController {
             // Update validation history
             const feedback: IValidationFeedback[] = [
                 ...validationResult.technical_accuracy.map(f => ({
-                    ...f,
-                    type: 'technical_accuracy' as const,
+                    type: 'technical_accuracy',
+                    message: f.message,
+                    suggestion: f.suggestion,
+                    severity: f.severity,
+                    location: f.location,
                     timestamp: new Date(),
-                    status: 'completed' as const,
-                    validatedBy: (req as AuthRequest).user._id
+                    status: 'completed',
+                    validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 })),
                 ...validationResult.industry_standards.map(f => ({
-                    ...f,
-                    type: 'industry_standards' as const,
+                    type: 'industry_standards',
+                    message: f.message,
+                    suggestion: f.suggestion,
+                    severity: f.severity,
+                    location: f.location,
                     timestamp: new Date(),
-                    status: 'completed' as const,
-                    validatedBy: (req as AuthRequest).user._id
+                    status: 'completed',
+                    validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 })),
                 ...validationResult.content_structure.map(f => ({
-                    ...f,
-                    type: 'content_structure' as const,
+                    type: 'content_structure',
+                    message: f.message,
+                    suggestion: f.suggestion,
+                    severity: f.severity,
+                    location: f.location,
                     timestamp: new Date(),
-                    status: 'completed' as const,
-                    validatedBy: (req as AuthRequest).user._id
+                    status: 'completed',
+                    validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 }))
             ];
 
@@ -78,7 +77,7 @@ export class BlogPostController {
                 severity: 'low',
                 timestamp: new Date(),
                 status: 'completed',
-                validatedBy: (req as AuthRequest).user._id,
+                validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id),
                 feedback
             });
 

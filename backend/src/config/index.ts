@@ -33,14 +33,8 @@ const config = {
     mongodb: {
         maxPoolSize: 10,
         minPoolSize: 5,
-        serverSelectionTimeoutMS: 30000, // Increased timeout significantly
-        socketTimeoutMS: 75000, // Increased socket timeout
-        family: 4, // Force IPv4
-        ssl: true,
-        tls: true, // Explicitly enable TLS
-        authSource: 'admin',
-        retryWrites: true,
-        w: 'majority'
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 75000
     },
     redis: {
         connectTimeout: 5000,
