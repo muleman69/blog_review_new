@@ -63,9 +63,18 @@ jobs:
           echo "\nVerifying asset files exist:"
           ls -la assets/
 
-      - name: Create CNAME
+      - name: Setup routing and security
         run: |
-          echo "buildableblog.pro" > frontend/dist/CNAME
+          cd frontend/dist
+          # Create 404.html that redirects to index.html for client-side routing
+          cp index.html 404.html
+          # Create _headers file for security headers
+          echo "/*
+            Content-Security-Policy: default-src 'self' https://buildableblog.pro; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' http://localhost:3001 https://buildableblog.pro;
+            X-Frame-Options: DENY
+            X-Content-Type-Options: nosniff" > _headers
+          # Create CNAME file
+          echo "buildableblog.pro" > CNAME
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
