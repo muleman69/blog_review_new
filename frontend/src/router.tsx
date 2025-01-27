@@ -8,7 +8,7 @@ import BlogPostEditor from './components/editor/BlogPostEditor';
 
 const Router: React.FC = () => {
   return (
-    <BrowserRouter basename="/blog_review_new">
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />}>
           <Route index element={<Navigate to="/editor" replace />} />

@@ -66,6 +66,7 @@ jobs:
           npm run build
         env:
           CI: false
+          VITE_APP_BASE_URL: 'https://buildableblog.pro'
 
       - name: Debug - Check build output
         run: |
@@ -73,6 +74,10 @@ jobs:
           ls -la frontend/dist
           echo "Index.html contents:"
           cat frontend/dist/index.html
+
+      - name: Create CNAME
+        run: |
+          echo "buildableblog.pro" > frontend/dist/CNAME
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
