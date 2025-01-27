@@ -9,6 +9,10 @@ export interface IValidationFeedback {
         line: number;
         column: number;
     };
+    timestamp: Date;
+    status: 'completed' | 'pending' | 'failed';
+    validatedBy: mongoose.Types.ObjectId;
+    feedback?: IValidationFeedback[];
 }
 
 export interface IBlogPost extends Document {
@@ -63,7 +67,38 @@ const BlogPostSchema: Schema = new Schema({
         location: {
             line: Number,
             column: Number
-        }
+        },
+        timestamp: {
+            type: Date,
+            default: Date.now
+        },
+        status: {
+            type: String,
+            enum: ['completed', 'pending', 'failed'],
+            required: true
+        },
+        validatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        feedback: [{
+            type: {
+                type: String,
+                enum: ['technical_accuracy', 'industry_standards', 'content_structure'],
+                required: true
+            },
+            message: String,
+            suggestion: String,
+            severity: {
+                type: String,
+                enum: ['high', 'medium', 'low']
+            },
+            location: {
+                line: Number,
+                column: Number
+            }
+        }]
     }]
 }, {
     timestamps: true // Automatically add createdAt and updatedAt fields
