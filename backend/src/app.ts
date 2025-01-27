@@ -28,10 +28,24 @@ async function initializeDatabases() {
     // MongoDB connection
     if (config.mongoUri) {
         try {
-            await mongoose.connect(config.mongoUri);
-            console.log('Connected to MongoDB');
+            console.log('Attempting to connect to MongoDB with URI:', config.mongoUri.replace(/\/\/[^@]+@/, '//*****@'));
+            await mongoose.connect(config.mongoUri, {
+                serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+                socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+            });
+            console.log('MongoDB connected successfully');
+            
+            // Log MongoDB connection state
+            mongoose.connection.on('connected', () => console.log('MongoDB connection established'));
+            mongoose.connection.on('error', err => console.error('MongoDB connection error:', err));
+            mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
         } catch (err) {
             console.error('MongoDB connection error:', err);
+            console.error('MongoDB connection details:', {
+                uri: config.mongoUri.replace(/\/\/[^@]+@/, '//*****@'),
+                environment: process.env.NODE_ENV,
+                nodeVersion: process.version
+            });
         }
     } else {
         console.log('MongoDB URI not provided, skipping connection');
@@ -40,7 +54,7 @@ async function initializeDatabases() {
     // Redis connection
     if (config.redisUrl) {
         try {
-            console.log('Attempting to connect to Redis...');
+            console.log('Attempting to connect to Redis with URL:', config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'));
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
@@ -51,24 +65,34 @@ async function initializeDatabases() {
                             return false;
                         }
                         return Math.min(retries * 100, 3000);
-                    }
+                    },
+                    connectTimeout: 5000, // Connection timeout of 5 seconds
                 }
             });
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
-                console.error('Redis URL format (sanitized):', config.redisUrl.replace(/\/\/.*@/, '//***@'));
+                console.error('Redis connection details:', {
+                    url: config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'),
+                    environment: process.env.NODE_ENV,
+                    nodeVersion: process.version
+                });
             });
 
-            redisClient.on('connect', () => {
-                console.log('Redis client connected');
-            });
+            redisClient.on('connect', () => console.log('Redis client connected'));
+            redisClient.on('ready', () => console.log('Redis client ready'));
+            redisClient.on('reconnecting', () => console.log('Redis client reconnecting'));
+            redisClient.on('end', () => console.log('Redis client connection ended'));
 
             await redisClient.connect();
             console.log('Redis connection established');
         } catch (err) {
             console.error('Redis connection error:', err);
-            console.error('Redis URL format (sanitized):', config.redisUrl.replace(/\/\/.*@/, '//***@'));
+            console.error('Redis connection details:', {
+                url: config.redisUrl.replace(/\/\/[^@]+@/, '//*****@'),
+                environment: process.env.NODE_ENV,
+                nodeVersion: process.version
+            });
             redisClient = null;
         }
     } else {
@@ -76,13 +100,16 @@ async function initializeDatabases() {
     }
 }
 
-// Initialize databases but don't wait for them
+// Initialize databases and handle any errors
 initializeDatabases().catch((err) => {
     console.error('Failed to initialize databases:', err);
-    console.error('Error details:', err.message);
-    if (err.cause) {
-        console.error('Cause:', err.cause);
-    }
+    console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        cause: err.cause,
+        environment: process.env.NODE_ENV,
+        nodeVersion: process.version
+    });
 });
 
 // Debug route
