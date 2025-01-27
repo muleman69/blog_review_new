@@ -8,22 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/debug",
-      "dest": "src/index.ts"
-    },
-    {
-      "src": "/api/health",
-      "dest": "src/index.ts"
-    },
-    {
-      "src": "/api/blog-posts(.*)",
-      "dest": "src/index.ts"
-    },
-    {
       "src": "/(.*)",
       "dest": "src/index.ts"
     }
-  ],
-  "installCommand": "npm install",
-  "buildCommand": "npm run vercel-build"
+  ]
 } 
