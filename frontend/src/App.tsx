@@ -1,28 +1,28 @@
-import { useCallback, useState } from 'react';
-import BlogPostEditor from './components/editor/BlogPostEditor';
-import useBlogValidation from './hooks/useBlogValidation';
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Navigation from './components/common/Navigation';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const App = () => {
-  const [content, setContent] = useState('');
-  const { issues } = useBlogValidation({
-    content,
-    onValidationComplete: (issues) => {
-      console.log('Validation complete:', issues);
-    }
-  });
-
-  const handleContentChange = useCallback((value: string) => {
-    setContent(value);
-  }, []);
-
+const App: React.FC = () => {
   return (
-    <main className="container mx-auto p-4 h-screen">
-      <BlogPostEditor
-        content={content}
-        onChange={handleContentChange}
-        issues={issues}
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <main className="container mx-auto px-4 py-8">
+        <Outlet />
+      </main>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
       />
-    </main>
+    </div>
   );
 };
 
