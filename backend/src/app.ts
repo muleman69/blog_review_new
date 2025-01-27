@@ -35,46 +35,41 @@ async function initializeDatabases() {
             const sanitizedUri = config.mongoUri.replace(/\/\/[^@]+@/, '//*****@');
             console.log('Attempting to connect to MongoDB...');
             console.log('MongoDB URI format:', sanitizedUri);
-            console.log('MongoDB connection options:', config.mongodb);
 
-            await mongoose.connect(config.mongoUri, config.mongodb);
+            mongoose.set('debug', config.nodeEnv === 'development');
+            
+            await mongoose.connect(config.mongoUri, {
+                ...config.mongodb,
+                serverApi: {
+                    version: '1',
+                    strict: true,
+                    deprecationErrors: true
+                }
+            });
+            
             console.log('MongoDB connected successfully');
             
-            // Log MongoDB connection state
-            mongoose.connection.on('connected', () => {
-                console.log('MongoDB connection established');
-                console.log('MongoDB connection state:', mongoose.connection.readyState);
-                console.log('MongoDB connection details:', {
-                    host: mongoose.connection.host,
-                    port: mongoose.connection.port,
-                    name: mongoose.connection.name
-                });
-            });
-
-            mongoose.connection.on('error', err => {
+            mongoose.connection.on('error', (err) => {
                 console.error('MongoDB connection error:', err);
-                console.error('MongoDB error details:', {
-                    code: err.code,
-                    name: err.name,
-                    message: err.message
-                });
             });
 
             mongoose.connection.on('disconnected', () => {
                 console.log('MongoDB disconnected');
-                console.log('Attempting to reconnect to MongoDB...');
             });
-        } catch (err: any) {
-            console.error('MongoDB connection error:', err);
-            console.error('MongoDB connection failure details:', {
-                code: err.code,
-                name: err.name,
-                message: err.message,
-                stack: err.stack
+
+            mongoose.connection.on('reconnected', () => {
+                console.log('MongoDB reconnected');
             });
+
+        } catch (error) {
+            console.error('MongoDB connection error:', error);
+            if (error instanceof Error) {
+                console.error('Error details:', error.message);
+                console.error('Stack trace:', error.stack);
+            }
         }
     } else {
-        console.log('MongoDB URI not provided, skipping connection');
+        console.log('No MongoDB URI provided, skipping connection');
     }
 
     // Redis connection
@@ -137,98 +132,54 @@ async function initializeDatabases() {
     }
 }
 
-// Initialize databases with comprehensive error handling
-initializeDatabases().catch((err) => {
-    console.error('Failed to initialize databases:', err);
-    console.error('Initialization error details:', {
-        name: err.name,
-        message: err.message,
-        stack: err.stack,
-        cause: err.cause,
-        environment: process.env.NODE_ENV,
-        nodeVersion: process.version
-    });
-});
-
-// Debug route
-app.get('/debug', async (_req: Request, res: Response) => {
-    const redisStatus = redisClient?.isOpen ?? false;
-    
-    res.json({
-        environment: process.env.NODE_ENV,
-        mongoUri: config.mongoUri ? 'Set' : 'Not set',
-        redisUrl: config.redisUrl ? 'Set' : 'Not set',
-        nodeVersion: process.version,
-        platform: process.platform,
-        memoryUsage: process.memoryUsage(),
-        uptime: process.uptime(),
-        mongodbStatus: mongoose.connection.readyState,
-        redisStatus: redisStatus ? 'connected' : 'disconnected'
-    });
-});
-
-// Root route
-app.get('/', (_req: Request, res: Response) => {
-    const dbStatus = {
-        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        redis: redisClient?.isOpen ?? false ? 'connected' : 'disconnected'
-    };
-
-    res.json({ 
-        message: 'Blog Review API',
-        version: '1.0.1',
-        environment: process.env.NODE_ENV,
-        status: 'operational',
-        databases: dbStatus,
-        endpoints: {
-            health: '/api/health',
-            blogPosts: '/api/blog-posts',
-            debug: '/debug'
-        }
-    });
-});
-
-// Health check endpoint
-app.get('/api/health', (_req: Request, res: Response) => {
-    const dbStatus = {
-        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        redis: redisClient?.isOpen ?? false ? 'connected' : 'disconnected'
-    };
-
-    res.json({ 
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        databases: dbStatus
-    });
-});
+// Initialize databases
+initializeDatabases();
 
 // Routes
-app.use('/api/blog-posts', blogPostRoutes);
+app.get('/', (_req: Request, res: Response) => {
+    res.json({
+        message: 'Blog Review API',
+        version: '1.0.0',
+        status: 'running',
+        endpoints: ['/api/blog-posts', '/api/health']
+    });
+});
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-    res.status(404).json({
-        error: 'Not Found',
-        message: `Cannot ${req.method} ${req.path}`,
-        availableEndpoints: {
-            root: '/',
-            health: '/api/health',
-            blogPosts: '/api/blog-posts',
-            debug: '/debug'
+app.get('/debug', (_req: Request, res: Response) => {
+    res.json({
+        environment: config.nodeEnv,
+        mongodb: {
+            connected: mongoose.connection.readyState === 1,
+            state: mongoose.connection.readyState,
+            host: mongoose.connection.host,
+            name: mongoose.connection.name
+        },
+        redis: {
+            connected: redisClient?.isOpen || false
         }
     });
 });
+
+app.get('/api/health', (_req: Request, res: Response) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        services: {
+            mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+            redis: redisClient?.isOpen ? 'connected' : 'disconnected'
+        }
+    });
+});
+
+// API routes
+app.use('/api/blog-posts', blogPostRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', err);
-    
-    const statusCode = 500;
-    const message = process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
-        : err.message;
-    
-    res.status(statusCode).json({ error: message });
+    res.status(500).json({
+        error: config.nodeEnv === 'development' ? err.message : 'Internal server error'
+    });
 });
 
 export default app; 
