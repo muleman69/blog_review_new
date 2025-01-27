@@ -37,12 +37,26 @@ async function initializeDatabases() {
             console.log('MongoDB URI format:', sanitizedUri);
             console.log('MongoDB connection options:', {
                 serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 45000
+                socketTimeoutMS: 45000,
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                retryWrites: true,
+                w: 'majority',
+                maxPoolSize: 10,
+                minPoolSize: 5,
+                maxIdleTimeMS: 30000
             });
 
             await mongoose.connect(config.mongoUri, {
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                retryWrites: true,
+                w: 'majority',
+                maxPoolSize: 10,
+                minPoolSize: 5,
+                maxIdleTimeMS: 30000
             });
             console.log('MongoDB connected successfully');
             
