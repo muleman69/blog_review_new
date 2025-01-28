@@ -79,50 +79,90 @@ if (process.env.NODE_ENV !== 'production') {
 // For Vercel serverless deployment
 export default async function handler(req: Request, res: Response) {
     try {
-        debugLog.server(`Serverless request: ${req.method} ${req.url}`);
+        debugLog.server(`Serverless request started: ${req.method} ${req.url}`);
+        debugLog.server('Request headers:', req.headers);
         
-        // Skip database connection for health check and non-database routes
-        if (req.url.startsWith('/api/blog-posts')) {
-            debugLog.server('Database route detected, ensuring connections...');
-            // Ensure database connections with timeout
-            const connectionPromise = ensureDatabaseConnections();
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Database connection timeout')), 5000);
+        // Wrap the Express app handling in a promise with timeout
+        const handleRequest = new Promise<void>((resolve, reject) => {
+            let hasResponded = false;
+
+            // Set a timeout for the entire request
+            const timeout = setTimeout(() => {
+                if (!hasResponded) {
+                    hasResponded = true;
+                    debugLog.error('timeout', new Error('Request timeout after 10s'));
+                    res.status(500).json({
+                        error: 'Request Timeout',
+                        message: 'The request took too long to process',
+                        timestamp: new Date().toISOString()
+                    });
+                    reject(new Error('Request timeout'));
+                }
+            }, 10000);
+
+            // Handle response completion
+            res.on('finish', () => {
+                hasResponded = true;
+                clearTimeout(timeout);
+                debugLog.server(`Request completed with status ${res.statusCode}`);
+                resolve();
             });
 
-            await Promise.race([connectionPromise, timeoutPromise]);
-        }
+            // Handle response close
+            res.on('close', () => {
+                hasResponded = true;
+                clearTimeout(timeout);
+                debugLog.server('Response closed');
+                resolve();
+            });
 
-        // Create a promise to handle the Express app response
-        return new Promise((resolve, reject) => {
-            const done = () => {
-                resolve(undefined);
-            };
-
-            app(req, res);
-            
-            // Handle response completion
-            res.on('finish', done);
-            res.on('close', done);
-
-            // Handle errors
+            // Handle response error
             res.on('error', (error: Error) => {
-                debugLog.error('express-error', error);
+                hasResponded = true;
+                clearTimeout(timeout);
+                debugLog.error('response-error', error);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: 'Response Error',
+                        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error',
+                        timestamp: new Date().toISOString()
+                    });
+                }
                 reject(error);
             });
+
+            // Process the request through Express
+            try {
+                debugLog.server('Processing request through Express');
+                app(req, res);
+            } catch (err: any) {
+                hasResponded = true;
+                clearTimeout(timeout);
+                debugLog.error('express-error', err);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: 'Express Processing Error',
+                        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                reject(err);
+            }
         });
-    } catch (err) {
-        const error = err as Error;
-        debugLog.error('serverless-handler', error);
-        
-        // Don't send response if it's already been sent
+
+        await handleRequest;
+        debugLog.server('Request handling completed successfully');
+        return;
+
+    } catch (err: any) {
+        debugLog.error('serverless-handler', err);
         if (!res.headersSent) {
             res.status(500).json({
-                error: 'Internal Server Error',
-                message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                error: 'Serverless Handler Error',
+                message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
                 timestamp: new Date().toISOString()
             });
         }
-        return undefined;
+        return;
     }
 } 
