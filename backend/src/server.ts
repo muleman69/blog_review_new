@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import app from './app';
 import config from './config';
 import { connectMongoDB } from './utils/mongodb';
-import { connectRedis } from './utils/redis';
+import { connectRedis, isRedisConnected } from './utils/redis';
 import { debugLog } from './utils/debug';
 
 let isConnected = false;
@@ -16,17 +16,23 @@ export async function ensureDatabaseConnections() {
 
         debugLog.server('Initializing database connections...');
 
-        // Connect to MongoDB
+        // Connect to MongoDB (required)
         if (!config.mongoUri) {
             throw new Error('MongoDB URI is not configured');
         }
         await connectMongoDB(config.mongoUri);
 
-        // Connect to Redis
-        if (!config.redisUrl) {
-            throw new Error('Redis URL is not configured');
+        // Connect to Redis (optional)
+        if (config.redisUrl) {
+            try {
+                await connectRedis(config.redisUrl);
+            } catch (err) {
+                const error = err as Error;
+                debugLog.error('redis-connection', error);
+                // Don't throw error for Redis connection failure
+                debugLog.server('Continuing without Redis connection');
+            }
         }
-        await connectRedis(config.redisUrl);
 
         isConnected = true;
         debugLog.server('Database connections established');
@@ -45,6 +51,7 @@ if (process.env.NODE_ENV !== 'production') {
             const server = app.listen(config.port, () => {
                 debugLog.server(`Development server running on port ${config.port}`);
                 debugLog.server(`Environment: ${config.nodeEnv}`);
+                debugLog.server(`Redis connected: ${isRedisConnected()}`);
             });
 
             // Handle server errors
@@ -76,8 +83,13 @@ export default async function handler(req: Request, res: Response) {
     try {
         debugLog.server(`Serverless request: ${req.method} ${req.url}`);
         
-        // Ensure database connections
-        await ensureDatabaseConnections();
+        // Ensure database connections with timeout
+        const connectionPromise = ensureDatabaseConnections();
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Database connection timeout')), 5000);
+        });
+
+        await Promise.race([connectionPromise, timeoutPromise]);
 
         // Create a promise to handle the Express app response
         return new Promise((resolve, reject) => {
