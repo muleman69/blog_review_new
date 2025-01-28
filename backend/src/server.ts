@@ -2,12 +2,16 @@ import app from './app';
 import config from './config';
 import { connectMongoDB } from './utils/mongodb';
 import { connectRedis } from './utils/redis';
-import { debugLog, dumpState } from './utils/debug';
+import { debugLog } from './utils/debug';
 
-async function startServer() {
+let isConnected = false;
+
+async function connectDatabases() {
     try {
-        debugLog.server('Starting server...');
-        debugLog.server('System state:', dumpState());
+        if (isConnected) {
+            debugLog.server('Using existing database connections');
+            return;
+        }
 
         // Connect to MongoDB
         if (!config.mongoUri) {
@@ -21,7 +25,21 @@ async function startServer() {
         }
         await connectRedis(config.redisUrl);
 
-        // Start the server
+        isConnected = true;
+        debugLog.server('Database connections established');
+    } catch (error) {
+        debugLog.error('database-connection', error);
+        // In serverless, we don't want to exit the process
+        if (process.env.NODE_ENV === 'development') {
+            process.exit(1);
+        }
+    }
+}
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+    const startServer = async () => {
+        await connectDatabases();
         const server = app.listen(config.port, () => {
             debugLog.server(`Server is running on port ${config.port}`);
             debugLog.server(`Environment: ${config.nodeEnv}`);
@@ -41,22 +59,18 @@ async function startServer() {
                 process.exit(0);
             });
         });
+    };
 
-        // Handle unhandled rejections
-        process.on('unhandledRejection', (reason: any) => {
-            debugLog.error('unhandled-rejection', reason);
-        });
-
-        // Handle uncaught exceptions
-        process.on('uncaughtException', (error: Error) => {
-            debugLog.error('uncaught-exception', error);
-            process.exit(1);
-        });
-
-    } catch (error) {
+    startServer().catch((error) => {
         debugLog.error('startup', error);
-        process.exit(1);
-    }
+        if (process.env.NODE_ENV === 'development') {
+            process.exit(1);
+        }
+    });
 }
 
-startServer(); 
+// For Vercel serverless deployment
+export default app;
+
+// Export the connection function for serverless use
+export { connectDatabases }; 
