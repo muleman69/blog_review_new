@@ -10,7 +10,7 @@ interface JwtPayload {
     role?: string;
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export const auth = function(req: Request, res: Response, next: NextFunction): void {
     try {
         // Validate JWT configuration before processing
         validateAuthConfig();
@@ -18,13 +18,15 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
         // Ensure JWT secret is configured
         if (!config.jwtSecret) {
             debugLog.error('auth', 'JWT secret is not configured');
-            return res.status(500).json({ error: 'Server configuration error' });
+            res.status(500).json({ error: 'Server configuration error' });
+            return;
         }
 
         const token = req.header('Authorization')?.replace('Bearer ', '');
         
         if (!token) {
-            return res.status(401).json({ error: 'Authentication required' });
+            res.status(401).json({ error: 'Authentication required' });
+            return;
         }
 
         try {
@@ -46,7 +48,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
             next();
         } catch (err) {
             debugLog.error('auth', err);
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            res.status(401).json({ error: 'Invalid or expired token' });
+            return;
         }
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
@@ -56,6 +59,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
             message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
             timestamp: new Date().toISOString()
         });
+        return;
     }
 }
 
@@ -83,13 +87,15 @@ declare global {
 
 // Role-based authorization middleware
 export const authorize = (roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void | Response => {
+    return (req: Request, res: Response, next: NextFunction): void => {
         if (!req.user) {
-            return res.status(401).json({ error: 'Authentication required' });
+            res.status(401).json({ error: 'Authentication required' });
+            return;
         }
 
         if (!req.user.role || !roles.includes(req.user.role)) {
-            return res.status(403).json({ error: 'Insufficient permissions' });
+            res.status(403).json({ error: 'Insufficient permissions' });
+            return;
         }
 
         next();
