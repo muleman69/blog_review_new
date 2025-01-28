@@ -135,9 +135,10 @@ export default async function handler(req: Request, res: Response) {
             try {
                 debugLog.server('Processing request through Express');
                 app(req, res);
-            } catch (err: any) {
+            } catch (error: unknown) {
                 hasResponded = true;
                 clearTimeout(timeout);
+                const err = error instanceof Error ? error : new Error(String(error));
                 debugLog.error('express-error', err);
                 if (!res.headersSent) {
                     res.status(500).json({
@@ -154,7 +155,8 @@ export default async function handler(req: Request, res: Response) {
         debugLog.server('Request handling completed successfully');
         return;
 
-    } catch (err: any) {
+    } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
         debugLog.error('serverless-handler', err);
         if (!res.headersSent) {
             res.status(500).json({

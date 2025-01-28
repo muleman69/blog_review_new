@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 // Health check endpoint (before database middleware)
 app.get('/api/health', (_req, res) => {
     try {
+        console.log('[Health Check] Endpoint called');
         debugLog.server('Health check endpoint called');
         const healthInfo = {
             status: 'ok',
@@ -47,9 +48,12 @@ app.get('/api/health', (_req, res) => {
                 method: _req.method
             }
         };
+        console.log('[Health Check] Response:', healthInfo);
         debugLog.server('Health check response:', healthInfo);
         res.json(healthInfo);
-    } catch (err: any) {
+    } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error('[Health Check] Error:', err);
         debugLog.error('health-check', err);
         const errorResponse = {
             error: 'Health Check Failed',
@@ -58,6 +62,7 @@ app.get('/api/health', (_req, res) => {
             path: _req.path,
             method: _req.method
         };
+        console.error('[Health Check] Error Response:', errorResponse);
         debugLog.server('Health check error response:', errorResponse);
         res.status(500).json(errorResponse);
     }
