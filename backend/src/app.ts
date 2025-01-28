@@ -16,28 +16,7 @@ app.use((req, _res, next) => {
     next();
 });
 
-// Database connection middleware for serverless
-app.use(async (_req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    try {
-        await ensureDatabaseConnections();
-        next();
-    } catch (error) {
-        debugLog.error('database-middleware', error);
-        next(error);
-    }
-});
-
-// Health check endpoint
-app.get('/api/health', (_req, res) => {
-    debugLog.server('Health check endpoint called');
-    res.json({ 
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV
-    });
-});
-
-// CORS middleware
+// CORS middleware first
 app.use(cors({
     origin: config.corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -48,6 +27,33 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Health check endpoint (before database middleware)
+app.get('/api/health', (_req, res) => {
+    debugLog.server('Health check endpoint called');
+    res.json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV,
+        version: '1.0.0'
+    });
+});
+
+// Database connection middleware for protected routes
+app.use('/api/blog-posts/*', async (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+        debugLog.server('Attempting database connection...');
+        await ensureDatabaseConnections();
+        next();
+    } catch (error: any) {
+        debugLog.error('database-middleware', error);
+        res.status(500).json({
+            error: 'Database Connection Error',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
 
 // Debug route
 app.get('/debug', async (_req: express.Request, res: express.Response) => {
