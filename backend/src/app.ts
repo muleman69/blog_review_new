@@ -43,17 +43,11 @@ async function initializeDatabases() {
                 minPoolSize: 5,
                 serverSelectionTimeoutMS: 30000,
                 socketTimeoutMS: 45000,
-                connectTimeoutMS: 30000,
                 ssl: true,
-                tls: true,
                 authSource: 'admin',
+                replicaSet: 'atlas-5rs2h9-shard-0',
                 retryWrites: true,
-                retryReads: true,
-                serverApi: {
-                    version: '1',
-                    strict: true,
-                    deprecationErrors: true
-                }
+                retryReads: true
             };
             
             await mongoose.connect(config.mongoUri, mongooseOptions);
@@ -95,34 +89,27 @@ async function initializeDatabases() {
             redisClient = createClient({
                 url: config.redisUrl,
                 socket: {
-                    connectTimeout: 20000,
-                    keepAlive: 10000,
+                    connectTimeout: 10000,
                     reconnectStrategy: (retries) => {
-                        console.log(`Redis reconnect attempt ${retries}`);
                         if (retries > 10) {
                             console.error('Max Redis reconnection attempts reached');
-                            return new Error('Max Redis reconnection attempts reached');
+                            return false;
                         }
-                        return Math.min(retries * 1000, 10000);
-                    },
-                    tls: true,
-                    rejectUnauthorized: false
+                        return Math.min(retries * 1000, 3000);
+                    }
                 }
             });
 
-            // Log Redis URL format for debugging (without credentials)
+            // Log connection attempts
             const sanitizedRedisUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//***:***@');
             console.log('Redis URL format:', sanitizedRedisUrl);
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
-                if (err instanceof Error) {
-                    console.error('Redis error details:', {
-                        message: err.message,
-                        stack: err.stack,
-                        code: err.cause
-                    });
-                }
+                console.error('Redis error details:', {
+                    message: err.message,
+                    stack: err.stack
+                });
             });
 
             redisClient.on('connect', () => {
