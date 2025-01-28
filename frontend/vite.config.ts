@@ -29,16 +29,15 @@ export default defineConfig(({ mode }) => {
           },
           assetFileNames: (assetInfo) => {
             if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
-            const info = assetInfo.name.split('.');
             if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name)) {
-              return `assets/fonts/[name]-[hash][extname]`;
+              return 'assets/fonts/[name]-[hash][extname]';
             }
-            return `assets/[name]-[hash][extname]`;
+            return 'assets/[name]-[hash][extname]';
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: 'assets/js/[name]-[hash].js',
-        },
-      },
+          entryFileNames: 'assets/js/[name]-[hash].js'
+        }
+      }
     },
     server: {
       port: 3000,
@@ -47,8 +46,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: isProd ? 'https://buildableblog.pro' : 'http://localhost:3001',
           changeOrigin: true,
-          secure: isProd,
-          rewrite: (path) => path.replace(/^\/api/, '')
+          secure: isProd
         }
       }
     },
