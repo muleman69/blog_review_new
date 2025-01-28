@@ -81,13 +81,17 @@ export default async function handler(req: Request, res: Response) {
     try {
         debugLog.server(`Serverless request: ${req.method} ${req.url}`);
         
-        // Ensure database connections with timeout
-        const connectionPromise = ensureDatabaseConnections();
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Database connection timeout')), 5000);
-        });
+        // Skip database connection for health check and non-database routes
+        if (req.url.startsWith('/api/blog-posts')) {
+            debugLog.server('Database route detected, ensuring connections...');
+            // Ensure database connections with timeout
+            const connectionPromise = ensureDatabaseConnections();
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Database connection timeout')), 5000);
+            });
 
-        await Promise.race([connectionPromise, timeoutPromise]);
+            await Promise.race([connectionPromise, timeoutPromise]);
+        }
 
         // Create a promise to handle the Express app response
         return new Promise((resolve, reject) => {
