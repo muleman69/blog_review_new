@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import { clientsClaim } from 'workbox-core';
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, Route } from 'workbox-routing';
@@ -5,7 +7,7 @@ import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategi
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-declare const self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
 clientsClaim();
 
@@ -96,9 +98,15 @@ registerRoute(
   )
 );
 
+interface ValidationRequest {
+  data: any;
+  resolver: (value: any) => void;
+  reject: (reason?: any) => void;
+}
+
 // Handle validation rule requests with batching
-const validationQueue: any[] = [];
-let batchTimeout: number | null = null;
+const validationQueue: ValidationRequest[] = [];
+let batchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const processBatch = async () => {
   if (validationQueue.length === 0) return;
@@ -110,7 +118,7 @@ const processBatch = async () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ requests: batch }),
+      body: JSON.stringify({ requests: batch.map(req => req.data) }),
     });
     
     if (response.ok) {
@@ -127,7 +135,7 @@ const processBatch = async () => {
   }
 };
 
-self.addEventListener('message', (event) => {
+self.addEventListener('message', (event: ExtendableMessageEvent) => {
   if (event.data && event.data.type === 'VALIDATION_REQUEST') {
     const promise = new Promise((resolve, reject) => {
       validationQueue.push({
@@ -138,7 +146,7 @@ self.addEventListener('message', (event) => {
     });
 
     if (!batchTimeout) {
-      batchTimeout = self.setTimeout(() => {
+      batchTimeout = setTimeout(() => {
         batchTimeout = null;
         void processBatch();
       }, 100); // Batch requests every 100ms
