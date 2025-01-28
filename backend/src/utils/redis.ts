@@ -1,4 +1,5 @@
-import { createClient, RedisClientType } from 'redis';
+import { createClient } from 'redis';
+import type { RedisClientType, RedisClientOptions } from 'redis';
 import { debugLog } from './debug';
 import dns from 'dns';
 import { promisify } from 'util';
@@ -6,9 +7,14 @@ import config from '../config';
 
 const lookup = promisify(dns.lookup);
 
-let redisClient: RedisClientType | null = null;
+// Define a more specific Redis client type
+type RedisClient = RedisClientType<{
+    [key: string]: never;
+}>;
+
+let redisClient: RedisClient | null = null;
 let isConnecting = false;
-let connectionPromise: Promise<RedisClientType | null> | null = null;
+let connectionPromise: Promise<RedisClient | null> | null = null;
 
 async function getRedisEndpoint(url: string): Promise<string> {
     try {
@@ -35,8 +41,8 @@ async function getRedisEndpoint(url: string): Promise<string> {
     }
 }
 
-async function createRedisConnection(url: string): Promise<RedisClientType | null> {
-    const client = createClient({
+async function createRedisConnection(url: string): Promise<RedisClient | null> {
+    const options: RedisClientOptions = {
         url,
         socket: {
             connectTimeout: config.redis.connectTimeout,
@@ -54,7 +60,9 @@ async function createRedisConnection(url: string): Promise<RedisClientType | nul
                 return delay;
             }
         }
-    });
+    };
+
+    const client = createClient(options) as RedisClient;
 
     client.on('error', (err) => {
         debugLog.error('redis', err);
@@ -83,7 +91,7 @@ async function createRedisConnection(url: string): Promise<RedisClientType | nul
     }
 }
 
-export async function connectRedis(): Promise<RedisClientType | null> {
+export async function connectRedis(): Promise<RedisClient | null> {
     try {
         // If Redis URL is not configured, return null without error
         if (!config.redisUrl) {
@@ -110,7 +118,9 @@ export async function connectRedis(): Promise<RedisClientType | null> {
         
         connectionPromise = createRedisConnection(resolvedUrl)
             .then((client) => {
-                redisClient = client;
+                if (client) {
+                    redisClient = client;
+                }
                 return client;
             })
             .finally(() => {
@@ -128,12 +138,52 @@ export async function connectRedis(): Promise<RedisClientType | null> {
     }
 }
 
-export function getRedisClient(): RedisClientType | null {
+export function getRedisClient(): RedisClient | null {
     return redisClient;
 }
 
 export function isRedisConnected(): boolean {
     return redisClient?.isOpen || false;
+}
+
+// Add caching operation with fallback
+export async function cacheOperation<T>(
+    operation: () => Promise<T>,
+    key: string,
+    ttl: number
+): Promise<T> {
+    try {
+        const client = await getRedisClient();
+        if (!client || !config.redis.enabled) {
+            debugLog.redis('Redis not available or disabled, executing operation directly');
+            return operation();
+        }
+
+        // Try to get from cache first
+        const cached = await client.get(key);
+        if (cached) {
+            debugLog.redis(`Cache hit for key: ${key}`);
+            return JSON.parse(cached);
+        }
+
+        // If not in cache, execute operation
+        const result = await operation();
+        
+        // Store in cache
+        try {
+            await client.setEx(key, ttl, JSON.stringify(result));
+            debugLog.redis(`Cached result for key: ${key}`);
+        } catch (cacheError) {
+            debugLog.error('redis-cache', cacheError as Error);
+            // Don't throw error on cache failure
+        }
+
+        return result;
+    } catch (error) {
+        debugLog.error('redis-operation', error as Error);
+        // Fallback to direct operation if Redis fails
+        return operation();
+    }
 }
 
 // Handle process termination
