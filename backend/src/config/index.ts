@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { debugLog } from '../utils/debug';
 
 // Load environment variables
 dotenv.config();
@@ -8,7 +9,7 @@ const requiredEnvVars = ['NODE_ENV', 'MONGO_URI', 'REDIS_URL', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
-    console.warn(`Warning: Missing environment variables: ${missingEnvVars.join(', ')}`);
+    debugLog.error('config', `Missing environment variables: ${missingEnvVars.join(', ')}`);
 }
 
 const config = {
@@ -25,7 +26,7 @@ const config = {
 };
 
 // Log sanitized configuration on startup
-console.log('Starting server with configuration:', {
+debugLog.config('Starting server with configuration:', {
     nodeEnv: config.nodeEnv,
     port: config.port,
     mongoUri: config.mongoUri ? 'Set' : 'Not set',
@@ -33,5 +34,17 @@ console.log('Starting server with configuration:', {
     jwtSecret: 'Hidden',
     corsOrigins: config.corsOrigins
 });
+
+// Also log to console in production
+if (config.nodeEnv === 'production') {
+    console.log('Starting server with configuration:', {
+        nodeEnv: config.nodeEnv,
+        port: config.port,
+        mongoUri: config.mongoUri ? 'Set' : 'Not set',
+        redisUrl: config.redisUrl ? 'Set' : 'Not set',
+        jwtSecret: 'Hidden',
+        corsOrigins: config.corsOrigins
+    });
+}
 
 export default config; 

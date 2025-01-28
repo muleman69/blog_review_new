@@ -1,15 +1,16 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import mongoose, { ConnectOptions } from 'mongoose';
+import mongoose from 'mongoose';
 import { createClient } from 'redis';
 import config from './config/index';
 import blogPostRoutes from './routes/blogPost';
+import { debugLog, dumpState } from './utils/debug';
 
 const app = express();
 
 // Request logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    debugLog.server(`${req.method} ${req.path}`);
     next();
 });
 
@@ -25,88 +26,70 @@ app.use(express.json());
 let redisClient: ReturnType<typeof createClient> | null = null;
 
 async function initializeDatabases() {
-    console.log('Starting database initialization...');
-    console.log('Environment:', config.nodeEnv);
-    console.log('Node Version:', process.version);
+    debugLog.server('Starting database initialization...');
+    debugLog.server('System state:', dumpState());
 
     // MongoDB connection
     if (config.mongoUri) {
         try {
             const sanitizedUri = config.mongoUri.replace(/\/\/[^@]+@/, '//*****@');
-            console.log('Attempting to connect to MongoDB...');
-            console.log('MongoDB URI format:', sanitizedUri);
+            debugLog.db('Attempting to connect to MongoDB...');
+            debugLog.db('MongoDB URI format:', sanitizedUri);
 
             mongoose.set('debug', config.nodeEnv === 'development');
             
-            // Simplified MongoDB connection options
             await mongoose.connect(config.mongoUri);
-            console.log('MongoDB connected successfully');
+            debugLog.db('MongoDB connected successfully');
             
             mongoose.connection.on('error', (err) => {
-                console.error('MongoDB connection error:', err);
-                if (err instanceof Error) {
-                    console.error('Error details:', err.message);
-                    console.error('Stack trace:', err.stack);
-                }
+                debugLog.error('mongodb', err);
             });
 
             mongoose.connection.on('disconnected', () => {
-                console.log('MongoDB disconnected, attempting to reconnect...');
+                debugLog.db('MongoDB disconnected, attempting to reconnect...');
                 mongoose.connect(config.mongoUri).catch(err => {
-                    console.error('MongoDB reconnection failed:', err);
+                    debugLog.error('mongodb', err);
                 });
             });
 
             mongoose.connection.on('reconnected', () => {
-                console.log('MongoDB reconnected successfully');
+                debugLog.db('MongoDB reconnected successfully');
             });
 
         } catch (error) {
-            console.error('MongoDB connection error:', error);
-            if (error instanceof Error) {
-                console.error('Error details:', error.message);
-                console.error('Stack trace:', error.stack);
-            }
+            debugLog.error('mongodb', error);
         }
     }
 
     // Redis connection
     if (config.redisUrl) {
         try {
-            console.log('Attempting to connect to Redis...');
+            debugLog.redis('Attempting to connect to Redis...');
             
             redisClient = createClient({
                 url: config.redisUrl
             });
 
             redisClient.on('error', (err) => {
-                console.error('Redis client error:', err);
-                console.error('Redis error details:', {
-                    message: err.message,
-                    stack: err.stack
-                });
+                debugLog.error('redis', err);
             });
 
             redisClient.on('connect', () => {
-                console.log('Redis client connected successfully');
+                debugLog.redis('Redis client connected successfully');
             });
 
             redisClient.on('ready', () => {
-                console.log('Redis client ready for commands');
+                debugLog.redis('Redis client ready for commands');
             });
 
             redisClient.on('reconnecting', () => {
-                console.log('Redis client reconnecting...');
+                debugLog.redis('Redis client reconnecting...');
             });
 
             await redisClient.connect();
-            console.log('Redis connection established');
+            debugLog.redis('Redis connection established');
         } catch (error) {
-            console.error('Redis connection error:', error);
-            if (error instanceof Error) {
-                console.error('Error details:', error.message);
-                console.error('Stack trace:', error.stack);
-            }
+            debugLog.error('redis', error);
             redisClient = null;
         }
     }
@@ -114,11 +97,7 @@ async function initializeDatabases() {
 
 // Initialize databases
 initializeDatabases().catch(error => {
-    console.error('Failed to initialize databases:', error);
-    if (error instanceof Error) {
-        console.error('Error details:', error.message);
-        console.error('Stack trace:', error.stack);
-    }
+    debugLog.error('database-init', error);
 });
 
 // Routes
@@ -133,6 +112,7 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.get('/debug', (_req: Request, res: Response) => {
     res.json({
+        ...dumpState(),
         environment: config.nodeEnv,
         mongodb: {
             connected: mongoose.connection.readyState === 1,
@@ -163,7 +143,7 @@ app.use('/api/blog-posts', blogPostRoutes);
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Error:', err);
+    debugLog.error('express', err);
     res.status(500).json({
         error: config.nodeEnv === 'development' ? err.message : 'Internal server error'
     });
