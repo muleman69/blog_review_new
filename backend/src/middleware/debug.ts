@@ -12,24 +12,9 @@ export function debugMiddleware(req: Request, res: Response, next: NextFunction)
     debugLog.server(`[${requestId}] Body: ${JSON.stringify(req.body)}`);
     debugLog.server(`[${requestId}] System State: ${JSON.stringify(dumpState())}`);
 
-    // Capture response
-    const oldWrite = res.write;
-    const oldEnd = res.end;
-    const chunks: Buffer[] = [];
-
-    res.write = function (chunk: Buffer) {
-        chunks.push(Buffer.from(chunk));
-        return oldWrite.apply(res, arguments as any);
-    };
-
-    res.end = function (chunk: Buffer) {
-        if (chunk) {
-            chunks.push(Buffer.from(chunk));
-        }
-        const responseBody = Buffer.concat(chunks).toString('utf8');
+    // Log response
+    res.on('finish', () => {
         const responseTime = Date.now() - startTime;
-
-        // Log response details
         debugLog.server(`[${requestId}] Response completed in ${responseTime}ms`);
         debugLog.server(`[${requestId}] Status: ${res.statusCode}`);
         debugLog.server(`[${requestId}] Headers: ${JSON.stringify(res.getHeaders())}`);
@@ -40,13 +25,10 @@ export function debugMiddleware(req: Request, res: Response, next: NextFunction)
                 method: req.method,
                 url: req.url,
                 status: res.statusCode,
-                responseTime,
-                responseBody: responseBody.substring(0, 1000) // Limit response body logging
+                responseTime
             });
         }
-
-        return oldEnd.apply(res, arguments as any);
-    };
+    });
 
     next();
 } 
