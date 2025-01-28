@@ -6,17 +6,14 @@ import blogPostRoutes from './routes/blogPost';
 import { debugLog } from './utils/debug';
 import { getRedisClient } from './utils/redis';
 import { ensureDatabaseConnections } from './server';
+import { debugMiddleware } from './middleware/debug';
 
 const app = express();
 
-// Detailed request logging middleware
-app.use((req, _res, next) => {
-    debugLog.server(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    debugLog.server(`Headers: ${JSON.stringify(req.headers)}`);
-    next();
-});
+// Debug middleware first to catch all requests
+app.use(debugMiddleware);
 
-// CORS middleware first
+// CORS middleware
 app.use(cors({
     origin: config.corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -30,13 +27,28 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint (before database middleware)
 app.get('/api/health', (_req, res) => {
-    debugLog.server('Health check endpoint called');
-    res.json({ 
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV,
-        version: '1.0.0'
-    });
+    try {
+        debugLog.server('Health check endpoint called');
+        res.json({ 
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            env: process.env.NODE_ENV,
+            version: '1.0.0',
+            debug: {
+                nodeVersion: process.version,
+                platform: process.platform,
+                memory: process.memoryUsage(),
+                uptime: process.uptime()
+            }
+        });
+    } catch (err: any) {
+        debugLog.error('health-check', err);
+        res.status(500).json({
+            error: 'Health Check Failed',
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Database connection middleware for protected routes
@@ -70,6 +82,12 @@ app.get('/debug', async (_req: express.Request, res: express.Response) => {
             redis: {
                 connected: redisClient?.isOpen || false,
                 ready: redisClient?.isReady || false
+            },
+            system: {
+                nodeVersion: process.version,
+                platform: process.platform,
+                memory: process.memoryUsage(),
+                uptime: process.uptime()
             }
         });
     } catch (err: any) {
@@ -87,18 +105,39 @@ app.use('/api/blog-posts', blogPostRoutes);
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     debugLog.error('express-error', err);
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-        timestamp: new Date().toISOString()
-    });
+    if (!res.headersSent) {
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+            timestamp: new Date().toISOString(),
+            path: _req.path,
+            method: _req.method
+        });
+    }
 });
 
 // Handle 404s
 app.use((_req: express.Request, res: express.Response) => {
     if (!res.headersSent) {
-        res.status(404).json({ error: 'Not Found' });
+        debugLog.server(`404 Not Found: ${_req.method} ${_req.path}`);
+        res.status(404).json({ 
+            error: 'Not Found',
+            path: _req.path,
+            method: _req.method,
+            timestamp: new Date().toISOString()
+        });
     }
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (error: Error) => {
+    debugLog.error('uncaught-exception', error);
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+    debugLog.error('unhandled-rejection', reason);
+    console.error('Unhandled Rejection:', reason);
 });
 
 export default app; 
