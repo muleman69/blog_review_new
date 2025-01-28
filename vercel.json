@@ -12,7 +12,7 @@
       }
     },
     {
-      "src": "backend/dist/server.js",
+      "src": "backend/src/server.ts",
       "use": "@vercel/node",
       "config": {
         "maxDuration": 30
@@ -22,7 +22,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/dist/server.js",
+      "dest": "/backend/src/server.ts",
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,PATCH,OPTIONS",
@@ -34,7 +34,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
+      "dest": "frontend/dist/index.html"
     }
   ],
   "env": {
