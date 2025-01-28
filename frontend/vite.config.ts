@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
             editor: ['@monaco-editor/react'],
           },
           assetFileNames: (assetInfo) => {
+            if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
             const info = assetInfo.name.split('.');
-            const ext = info[info.length - 1];
             if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name)) {
               return `assets/fonts/[name]-[hash][extname]`;
             }
@@ -43,6 +43,14 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       open: true,
+      proxy: {
+        '/api': {
+          target: isProd ? 'https://buildableblog.pro' : 'http://localhost:3001',
+          changeOrigin: true,
+          secure: isProd,
+          rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      }
     },
     optimizeDeps: {
       include: ['@monaco-editor/react'],

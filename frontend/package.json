@@ -22,8 +22,7 @@
     "test": "vitest --config ./vitest.config.ts",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "vercel-build": "npm run build"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
@@ -42,7 +41,6 @@
     "eslint": "^8.0.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.0",
-    "gh-pages": "^5.0.0",
     "postcss": "^8.4.0",
     "react-router-dom": "^6.0.0",
     "react-toastify": "^9.0.0",
