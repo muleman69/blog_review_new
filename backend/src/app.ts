@@ -16,7 +16,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 // Database connection middleware for serverless
-app.use(async (req: Request, res: Response, next: NextFunction) => {
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
     try {
         await ensureDatabaseConnections();
         next();

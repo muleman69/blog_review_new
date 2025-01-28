@@ -30,7 +30,8 @@ export async function ensureDatabaseConnections() {
 
         isConnected = true;
         debugLog.server('Database connections established');
-    } catch (error) {
+    } catch (err) {
+        const error = err as Error;
         debugLog.error('database-connection', error);
         throw error;
     }
@@ -60,7 +61,8 @@ if (process.env.NODE_ENV !== 'production') {
                     process.exit(0);
                 });
             });
-        } catch (error) {
+        } catch (err) {
+            const error = err as Error;
             debugLog.error('startup', error);
             process.exit(1);
         }
@@ -79,12 +81,15 @@ export default async function handler(req: Request, res: Response) {
 
         // Create a promise to handle the Express app response
         return new Promise((resolve, reject) => {
+            const done = () => {
+                resolve(undefined);
+            };
+
             app(req, res);
             
             // Handle response completion
-            res.on('finish', () => {
-                resolve(undefined);
-            });
+            res.on('finish', done);
+            res.on('close', done);
 
             // Handle errors
             res.on('error', (error: Error) => {
@@ -100,7 +105,8 @@ export default async function handler(req: Request, res: Response) {
         if (!res.headersSent) {
             res.status(500).json({
                 error: 'Internal Server Error',
-                message: process.env.NODE_ENV === 'development' ? error.message : undefined
+                message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                timestamp: new Date().toISOString()
             });
         }
         return undefined;
