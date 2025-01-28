@@ -18,20 +18,22 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/src/server.ts",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,PATCH,OPTIONS",
-        "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-      }
+      "dest": "/backend/src/server.ts"
     },
     {
-      "src": "/(.*\\.[^/]+)$",
-      "dest": "/frontend/dist/$1"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)\\.(?:ico|png|jpg|jpeg|gif|svg|css|js|json)",
+      "dest": "/$1.$2"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
+      "dest": "/index.html"
     }
   ],
   "env": {
