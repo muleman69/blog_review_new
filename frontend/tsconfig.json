@@ -14,8 +14,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "types": ["vite/client"]
   },
-  "include": ["src"],
+  "include": ["src", "src/env.d.ts"],
   "exclude": ["node_modules"]
 } 
