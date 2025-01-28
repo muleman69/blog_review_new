@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 import { debugLog } from '../utils/debug';
+import { validateAuthConfig } from '../config';
 
 interface JwtPayload {
     id: string;
@@ -9,8 +10,11 @@ interface JwtPayload {
     role?: string;
 }
 
-export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
     try {
+        // Validate JWT configuration before processing
+        validateAuthConfig();
+        
         // Ensure JWT secret is configured
         if (!config.jwtSecret) {
             debugLog.error('auth', 'JWT secret is not configured');
@@ -44,11 +48,16 @@ export const auth = async (req: Request, res: Response, next: NextFunction): Pro
             debugLog.error('auth', err);
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
-    } catch (err) {
-        debugLog.error('auth', err);
-        return res.status(500).json({ error: 'Internal server error' });
+    } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        debugLog.error('auth-middleware', err);
+        res.status(500).json({
+            error: 'Authentication Configuration Error',
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
+            timestamp: new Date().toISOString()
+        });
     }
-};
+}
 
 // Type guard for JWT payload
 function isValidJwtPayload(payload: unknown): payload is JwtPayload {

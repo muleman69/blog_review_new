@@ -4,15 +4,7 @@ import { debugLog } from '../utils/debug';
 // Load environment variables
 dotenv.config();
 
-// Validate required environment variables
-const requiredEnvVars = ['NODE_ENV', 'MONGO_URI', 'JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-    debugLog.error('config', `Missing required environment variables: ${missingEnvVars.join(', ')}`);
-    throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
-
+// Define environment variables
 const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
@@ -45,7 +37,7 @@ debugLog.config('Starting server with configuration:', {
     port: config.port,
     mongoUri: config.mongoUri ? 'Set' : 'Not set',
     redisUrl: config.redisUrl ? 'Set' : 'Not set',
-    jwtSecret: 'Hidden',
+    jwtSecret: config.jwtSecret ? 'Set' : 'Not set',
     corsOrigins: config.corsOrigins
 });
 
@@ -56,9 +48,33 @@ if (config.nodeEnv === 'production') {
         port: config.port,
         mongoUri: config.mongoUri ? 'Set' : 'Not set',
         redisUrl: config.redisUrl ? 'Set' : 'Not set',
-        jwtSecret: 'Hidden',
+        jwtSecret: config.jwtSecret ? 'Set' : 'Not set',
         corsOrigins: config.corsOrigins
     });
+}
+
+// Validate required environment variables for protected routes
+export function validateAuthConfig() {
+    const requiredEnvVars = ['JWT_SECRET'];
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+    if (missingEnvVars.length > 0) {
+        const error = `Missing required environment variables for authentication: ${missingEnvVars.join(', ')}`;
+        debugLog.error('config', error);
+        throw new Error(error);
+    }
+}
+
+// Validate required environment variables for database operations
+export function validateDbConfig() {
+    const requiredEnvVars = ['MONGO_URI'];
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+    if (missingEnvVars.length > 0) {
+        const error = `Missing required environment variables for database: ${missingEnvVars.join(', ')}`;
+        debugLog.error('config', error);
+        throw new Error(error);
+    }
 }
 
 export default config; 
