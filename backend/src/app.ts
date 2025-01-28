@@ -15,10 +15,11 @@ app.use(debugMiddleware);
 
 // CORS middleware
 app.use(cors({
-    origin: config.corsOrigins,
+    origin: '*', // Temporarily allow all origins for debugging
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
-    maxAge: 86400 // 24 hours
+    maxAge: 86400, // 24 hours
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Body parsing middleware
@@ -30,6 +31,12 @@ app.get('/api/health', (_req, res) => {
     try {
         console.log('[Health Check] Endpoint called');
         debugLog.server('Health check endpoint called');
+        
+        // Set explicit headers
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-store');
+        
         const healthInfo = {
             status: 'ok',
             timestamp: new Date().toISOString(),
@@ -48,13 +55,16 @@ app.get('/api/health', (_req, res) => {
                 method: _req.method
             }
         };
-        console.log('[Health Check] Response:', healthInfo);
+
+        console.log('[Health Check] Sending response:', healthInfo);
         debugLog.server('Health check response:', healthInfo);
-        res.json(healthInfo);
+        
+        return res.status(200).json(healthInfo);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error('[Health Check] Error:', err);
         debugLog.error('health-check', err);
+        
         const errorResponse = {
             error: 'Health Check Failed',
             message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
@@ -62,9 +72,11 @@ app.get('/api/health', (_req, res) => {
             path: _req.path,
             method: _req.method
         };
+        
         console.error('[Health Check] Error Response:', errorResponse);
         debugLog.server('Health check error response:', errorResponse);
-        res.status(500).json(errorResponse);
+        
+        return res.status(500).json(errorResponse);
     }
 });
 
