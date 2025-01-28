@@ -79,85 +79,27 @@ if (process.env.NODE_ENV !== 'production') {
 // For Vercel serverless deployment
 export default async function handler(req: Request, res: Response) {
     try {
-        debugLog.server(`Serverless request started: ${req.method} ${req.url}`);
-        debugLog.server('Request headers:', req.headers);
+        console.log(`[Serverless] Request started: ${req.method} ${req.url}`);
+        console.log('[Serverless] Request headers:', req.headers);
         
-        // Wrap the Express app handling in a promise with timeout
-        const handleRequest = new Promise<void>((resolve, reject) => {
-            let hasResponded = false;
+        // Set basic headers
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-store');
 
-            // Set a timeout for the entire request
-            const timeout = setTimeout(() => {
-                if (!hasResponded) {
-                    hasResponded = true;
-                    debugLog.error('timeout', new Error('Request timeout after 10s'));
-                    res.status(500).json({
-                        error: 'Request Timeout',
-                        message: 'The request took too long to process',
-                        timestamp: new Date().toISOString()
-                    });
-                    reject(new Error('Request timeout'));
-                }
-            }, 10000);
+        // Process the request through Express
+        console.log('[Serverless] Processing request through Express');
+        app(req, res);
 
-            // Handle response completion
-            res.on('finish', () => {
-                hasResponded = true;
-                clearTimeout(timeout);
-                debugLog.server(`Request completed with status ${res.statusCode}`);
-                resolve();
-            });
-
-            // Handle response close
-            res.on('close', () => {
-                hasResponded = true;
-                clearTimeout(timeout);
-                debugLog.server('Response closed');
-                resolve();
-            });
-
-            // Handle response error
-            res.on('error', (error: Error) => {
-                hasResponded = true;
-                clearTimeout(timeout);
-                debugLog.error('response-error', error);
-                if (!res.headersSent) {
-                    res.status(500).json({
-                        error: 'Response Error',
-                        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error',
-                        timestamp: new Date().toISOString()
-                    });
-                }
-                reject(error);
-            });
-
-            // Process the request through Express
-            try {
-                debugLog.server('Processing request through Express');
-                app(req, res);
-            } catch (error: unknown) {
-                hasResponded = true;
-                clearTimeout(timeout);
-                const err = error instanceof Error ? error : new Error(String(error));
-                debugLog.error('express-error', err);
-                if (!res.headersSent) {
-                    res.status(500).json({
-                        error: 'Express Processing Error',
-                        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-                        timestamp: new Date().toISOString()
-                    });
-                }
-                reject(err);
-            }
+        // Log completion
+        res.on('finish', () => {
+            console.log(`[Serverless] Request completed with status ${res.statusCode}`);
         });
-
-        await handleRequest;
-        debugLog.server('Request handling completed successfully');
-        return;
 
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        debugLog.error('serverless-handler', err);
+        console.error('[Serverless] Error:', err);
+        
         if (!res.headersSent) {
             res.status(500).json({
                 error: 'Serverless Handler Error',
@@ -165,6 +107,5 @@ export default async function handler(req: Request, res: Response) {
                 timestamp: new Date().toISOString()
             });
         }
-        return;
     }
 } 
