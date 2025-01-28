@@ -7,8 +7,6 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
-type ValidationType = 'technical_accuracy' | 'industry_standards' | 'content_structure';
-
 export class BlogPostController {
     public static async create(req: AuthRequest, res: Response): Promise<void> {
         try {
@@ -36,47 +34,47 @@ export class BlogPostController {
 
             const validationResult = await ValidationService.validateBlogPost(blogPost);
             
-            // Update validation history
+            // Update validation history with correct typing
             const feedback: IValidationFeedback[] = [
                 ...validationResult.technical_accuracy.map(f => ({
-                    type: 'technical_accuracy',
+                    type: 'technical_accuracy' as const,
                     message: f.message,
                     suggestion: f.suggestion,
                     severity: f.severity,
                     location: f.location,
                     timestamp: new Date(),
-                    status: 'completed',
+                    status: 'completed' as const,
                     validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 })),
                 ...validationResult.industry_standards.map(f => ({
-                    type: 'industry_standards',
+                    type: 'industry_standards' as const,
                     message: f.message,
                     suggestion: f.suggestion,
                     severity: f.severity,
                     location: f.location,
                     timestamp: new Date(),
-                    status: 'completed',
+                    status: 'completed' as const,
                     validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 })),
                 ...validationResult.content_structure.map(f => ({
-                    type: 'content_structure',
+                    type: 'content_structure' as const,
                     message: f.message,
                     suggestion: f.suggestion,
                     severity: f.severity,
                     location: f.location,
                     timestamp: new Date(),
-                    status: 'completed',
+                    status: 'completed' as const,
                     validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id)
                 }))
             ];
 
             blogPost.validationHistory.push({
-                type: 'technical_accuracy',
+                type: 'technical_accuracy' as const,
                 message: 'Validation completed',
                 suggestion: 'Review feedback for improvements',
-                severity: 'low',
+                severity: 'low' as const,
                 timestamp: new Date(),
-                status: 'completed',
+                status: 'completed' as const,
                 validatedBy: new mongoose.Types.ObjectId((req as AuthRequest).user._id),
                 feedback
             });

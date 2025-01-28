@@ -2,8 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import mongoose, { ConnectOptions } from 'mongoose';
 import { createClient } from 'redis';
-import config from './config';
-import blogPostRoutes from './routes/blogPosts';
+import config from './config/index';
+import blogPostRoutes from './routes/blogPost';
 
 const app = express();
 
@@ -38,19 +38,8 @@ async function initializeDatabases() {
 
             mongoose.set('debug', config.nodeEnv === 'development');
             
-            const mongooseOptions: ConnectOptions = {
-                maxPoolSize: 10,
-                minPoolSize: 5,
-                serverSelectionTimeoutMS: 30000,
-                socketTimeoutMS: 45000,
-                ssl: true,
-                authSource: 'admin',
-                replicaSet: 'atlas-5rs2h9-shard-0',
-                retryWrites: true,
-                retryReads: true
-            };
-            
-            await mongoose.connect(config.mongoUri, mongooseOptions);
+            // Simplified MongoDB connection options
+            await mongoose.connect(config.mongoUri);
             console.log('MongoDB connected successfully');
             
             mongoose.connection.on('error', (err) => {
@@ -63,7 +52,7 @@ async function initializeDatabases() {
 
             mongoose.connection.on('disconnected', () => {
                 console.log('MongoDB disconnected, attempting to reconnect...');
-                mongoose.connect(config.mongoUri, mongooseOptions).catch(err => {
+                mongoose.connect(config.mongoUri).catch(err => {
                     console.error('MongoDB reconnection failed:', err);
                 });
             });
@@ -87,22 +76,8 @@ async function initializeDatabases() {
             console.log('Attempting to connect to Redis...');
             
             redisClient = createClient({
-                url: config.redisUrl,
-                socket: {
-                    connectTimeout: 10000,
-                    reconnectStrategy: (retries) => {
-                        if (retries > 10) {
-                            console.error('Max Redis reconnection attempts reached');
-                            return false;
-                        }
-                        return Math.min(retries * 1000, 3000);
-                    }
-                }
+                url: config.redisUrl
             });
-
-            // Log connection attempts
-            const sanitizedRedisUrl = config.redisUrl.replace(/\/\/[^@]+@/, '//***:***@');
-            console.log('Redis URL format:', sanitizedRedisUrl);
 
             redisClient.on('error', (err) => {
                 console.error('Redis client error:', err);
