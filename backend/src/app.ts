@@ -29,25 +29,37 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api/health', (_req, res) => {
     try {
         debugLog.server('Health check endpoint called');
-        res.json({ 
+        const healthInfo = {
             status: 'ok',
             timestamp: new Date().toISOString(),
-            env: process.env.NODE_ENV,
+            env: process.env.NODE_ENV || 'unknown',
             version: '1.0.0',
             debug: {
                 nodeVersion: process.version,
                 platform: process.platform,
                 memory: process.memoryUsage(),
-                uptime: process.uptime()
+                uptime: process.uptime(),
+                pid: process.pid
+            },
+            request: {
+                headers: _req.headers,
+                url: _req.url,
+                method: _req.method
             }
-        });
+        };
+        debugLog.server('Health check response:', healthInfo);
+        res.json(healthInfo);
     } catch (err: any) {
         debugLog.error('health-check', err);
-        res.status(500).json({
+        const errorResponse = {
             error: 'Health Check Failed',
             message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-            timestamp: new Date().toISOString()
-        });
+            timestamp: new Date().toISOString(),
+            path: _req.path,
+            method: _req.method
+        };
+        debugLog.server('Health check error response:', errorResponse);
+        res.status(500).json(errorResponse);
     }
 });
 
