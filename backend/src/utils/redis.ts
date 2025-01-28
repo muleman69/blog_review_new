@@ -3,7 +3,7 @@ import type { RedisClientType, RedisClientOptions } from 'redis';
 import { debugLog } from './debug';
 import dns from 'dns';
 import { promisify } from 'util';
-import config from '../config';
+import { config } from '../config/config';
 
 const lookup = promisify(dns.lookup);
 
