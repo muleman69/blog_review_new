@@ -1,20 +1,20 @@
 {
   "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
   "builds": [
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "cd frontend && npm install && npm run build"
+        "distDir": "dist"
       }
     },
     {
       "src": "backend/src/server.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**"],
-        "buildCommand": "cd backend && npm install && npm run build"
+        "includeFiles": ["dist/**"]
       }
     }
   ],
