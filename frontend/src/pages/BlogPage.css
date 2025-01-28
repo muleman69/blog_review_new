@@ -1,0 +1,43 @@
+.blog-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.blog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.blog-header h1 {
+    margin: 0;
+    color: #333;
+    font-size: 32px;
+}
+
+.create-button {
+    padding: 10px 20px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.create-button:hover {
+    background-color: #1976D2;
+}
+
+.error-message {
+    color: #f44336;
+    padding: 20px;
+    background: #ffebee;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 16px;
+} 

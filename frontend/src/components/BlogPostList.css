@@ -1,0 +1,94 @@
+.blog-post-list {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.blog-post-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.blog-post-card h2 {
+    margin: 0 0 10px;
+    color: #333;
+    font-size: 24px;
+}
+
+.blog-post-card .author {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 15px;
+}
+
+.blog-post-card .content {
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.blog-post-card .tags {
+    margin-bottom: 15px;
+}
+
+.blog-post-card .tag {
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.blog-post-card .metadata {
+    display: flex;
+    justify-content: space-between;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.blog-post-card .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.blog-post-card button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.blog-post-card .edit-button {
+    background-color: #2196F3;
+    color: white;
+}
+
+.blog-post-card .edit-button:hover {
+    background-color: #1976D2;
+}
+
+.blog-post-card .validate-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.blog-post-card .validate-button:hover {
+    background-color: #45a049;
+}
+
+.blog-post-card .delete-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.blog-post-card .delete-button:hover {
+    background-color: #da190b;
+} 

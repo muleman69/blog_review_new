@@ -2,20 +2,13 @@ import { createClient, RedisClientType } from 'redis';
 import { debugLog } from './debug';
 import dns from 'dns';
 import { promisify } from 'util';
+import config from '../config';
 
 const lookup = promisify(dns.lookup);
 
 let redisClient: RedisClientType | null = null;
-let connectionAttempts = 0;
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 1000; // 1 second
-
-interface RedisConfig {
-    url: string;
-    connectTimeout?: number;
-    maxReconnectAttempts?: number;
-    initialRetryDelay?: number;
-}
+let isConnecting = false;
+let connectionPromise: Promise<RedisClientType | null> | null = null;
 
 async function getRedisEndpoint(url: string): Promise<string> {
     try {
@@ -42,18 +35,21 @@ async function getRedisEndpoint(url: string): Promise<string> {
     }
 }
 
-async function createRedisConnection(config: RedisConfig): Promise<RedisClientType | null> {
+async function createRedisConnection(url: string): Promise<RedisClientType | null> {
     const client = createClient({
-        url: config.url,
+        url,
         socket: {
-            connectTimeout: config.connectTimeout || 10000,
+            connectTimeout: config.redis.connectTimeout,
             keepAlive: 30000,
             reconnectStrategy: (retries) => {
-                if (retries > (config.maxReconnectAttempts || 10)) {
+                if (retries > config.redis.maxRetries) {
                     debugLog.error('redis', 'Max reconnection attempts reached');
                     return false;
                 }
-                const delay = Math.min(retries * (config.initialRetryDelay || INITIAL_RETRY_DELAY), 5000);
+                const delay = Math.min(
+                    retries * config.redis.initialRetryDelay,
+                    config.redis.maxRetryDelay
+                );
                 debugLog.redis(`Reconnecting in ${delay}ms...`);
                 return delay;
             }
@@ -66,7 +62,6 @@ async function createRedisConnection(config: RedisConfig): Promise<RedisClientTy
 
     client.on('connect', () => {
         debugLog.redis('Redis client connected successfully');
-        connectionAttempts = 0;
     });
 
     client.on('ready', () => {
@@ -88,42 +83,47 @@ async function createRedisConnection(config: RedisConfig): Promise<RedisClientTy
     }
 }
 
-export async function connectRedis(url: string): Promise<RedisClientType | null> {
+export async function connectRedis(): Promise<RedisClientType | null> {
     try {
+        // If Redis URL is not configured, return null without error
+        if (!config.redisUrl) {
+            debugLog.redis('Redis URL not configured, skipping connection');
+            return null;
+        }
+
+        // If already connected, return existing client
         if (redisClient?.isOpen) {
             debugLog.redis('Reusing existing Redis connection');
             return redisClient;
         }
 
-        debugLog.redis('Attempting to connect to Redis...');
-        connectionAttempts++;
-
-        const resolvedUrl = await getRedisEndpoint(url);
-        
-        redisClient = await createRedisConnection({
-            url: resolvedUrl,
-            connectTimeout: 10000,
-            maxReconnectAttempts: MAX_RETRIES,
-            initialRetryDelay: INITIAL_RETRY_DELAY
-        });
-
-        if (!redisClient && connectionAttempts < MAX_RETRIES) {
-            debugLog.redis(`Connection attempt ${connectionAttempts} failed, retrying...`);
-            const delay = Math.min(connectionAttempts * INITIAL_RETRY_DELAY, 5000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return connectRedis(url);
+        // If connection is in progress, return existing promise
+        if (isConnecting && connectionPromise) {
+            debugLog.redis('Redis connection in progress, waiting...');
+            return connectionPromise;
         }
 
-        return redisClient;
+        isConnecting = true;
+        debugLog.redis('Attempting to connect to Redis...');
+
+        const resolvedUrl = await getRedisEndpoint(config.redisUrl);
+        
+        connectionPromise = createRedisConnection(resolvedUrl)
+            .then((client) => {
+                redisClient = client;
+                return client;
+            })
+            .finally(() => {
+                isConnecting = false;
+                connectionPromise = null;
+            });
+
+        return connectionPromise;
     } catch (err) {
+        isConnecting = false;
+        connectionPromise = null;
         const error = err as Error;
         debugLog.error('redis', error);
-        if (connectionAttempts < MAX_RETRIES) {
-            debugLog.redis(`Retrying connection (attempt ${connectionAttempts + 1}/${MAX_RETRIES})...`);
-            const delay = Math.min(connectionAttempts * INITIAL_RETRY_DELAY, 5000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return connectRedis(url);
-        }
         return null;
     }
 }
@@ -134,4 +134,16 @@ export function getRedisClient(): RedisClientType | null {
 
 export function isRedisConnected(): boolean {
     return redisClient?.isOpen || false;
-} 
+}
+
+// Handle process termination
+process.on('SIGINT', async () => {
+    if (redisClient) {
+        try {
+            await redisClient.quit();
+            debugLog.redis('Redis connection closed through app termination');
+        } catch (err) {
+            debugLog.error('redis-shutdown', err);
+        }
+    }
+}); 

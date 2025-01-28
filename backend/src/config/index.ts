@@ -5,24 +5,38 @@ import { debugLog } from '../utils/debug';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['NODE_ENV', 'MONGO_URI', 'REDIS_URL', 'JWT_SECRET'];
+const requiredEnvVars = ['NODE_ENV', 'MONGO_URI', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
-    debugLog.error('config', `Missing environment variables: ${missingEnvVars.join(', ')}`);
+    debugLog.error('config', `Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
 const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
-    mongoUri: process.env.MONGO_URI || '',
-    redisUrl: process.env.REDIS_URL || '',
-    jwtSecret: process.env.JWT_SECRET || 'default-development-secret',
+    mongoUri: process.env.MONGO_URI,
+    redisUrl: process.env.REDIS_URL, // Optional
+    jwtSecret: process.env.JWT_SECRET,
     deepseekApiKey: process.env.DEEPSEEK_API_KEY,
     deepseekApiUrl: process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1',
     corsOrigins: process.env.NODE_ENV === 'production'
         ? ['https://buildableblog.pro']
-        : ['http://localhost:3000']
+        : ['http://localhost:3000'],
+    db: {
+        maxPoolSize: 10,
+        minPoolSize: 5,
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        family: 4
+    },
+    redis: {
+        maxRetries: 3,
+        initialRetryDelay: 1000,
+        maxRetryDelay: 5000,
+        connectTimeout: 10000
+    }
 };
 
 // Log sanitized configuration on startup

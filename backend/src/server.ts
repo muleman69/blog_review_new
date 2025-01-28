@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import app from './app';
 import config from './config';
-import { connectMongoDB } from './utils/mongodb';
+import { connectMongoDB, getMongoConnectionState } from './utils/mongodb';
 import { connectRedis, isRedisConnected } from './utils/redis';
 import { debugLog } from './utils/debug';
 
@@ -17,15 +17,12 @@ export async function ensureDatabaseConnections() {
         debugLog.server('Initializing database connections...');
 
         // Connect to MongoDB (required)
-        if (!config.mongoUri) {
-            throw new Error('MongoDB URI is not configured');
-        }
-        await connectMongoDB(config.mongoUri);
+        await connectMongoDB();
 
         // Connect to Redis (optional)
         if (config.redisUrl) {
             try {
-                await connectRedis(config.redisUrl);
+                await connectRedis();
             } catch (err) {
                 const error = err as Error;
                 debugLog.error('redis-connection', error);
@@ -51,6 +48,7 @@ if (process.env.NODE_ENV !== 'production') {
             const server = app.listen(config.port, () => {
                 debugLog.server(`Development server running on port ${config.port}`);
                 debugLog.server(`Environment: ${config.nodeEnv}`);
+                debugLog.server(`MongoDB status: ${getMongoConnectionState()}`);
                 debugLog.server(`Redis connected: ${isRedisConnected()}`);
             });
 
