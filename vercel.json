@@ -12,28 +12,44 @@
     },
     {
       "src": "backend/src/server.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**"]
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/src/server.ts"
+      "dest": "/backend/src/server.ts",
+      "headers": {
+        "x-vercel-deployment-url": "${VERCEL_URL}",
+        "x-request-path": "$1"
+      }
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "dest": "/assets/$1",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)\\.(?:ico|png|jpg|jpeg|gif|svg|css|js|json)",
-      "dest": "/$1.$2"
+      "dest": "/$1.$2",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/index.html",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate"
+      }
     }
   ],
   "env": {

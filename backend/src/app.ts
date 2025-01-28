@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import config from './config/index';
@@ -6,17 +6,19 @@ import blogPostRoutes from './routes/blogPost';
 import { debugLog } from './utils/debug';
 import { getRedisClient } from './utils/redis';
 import { ensureDatabaseConnections } from './server';
+import routes from './routes';
 
 const app = express();
 
-// Request logging middleware
-app.use((req: Request, _res: Response, next: NextFunction) => {
-    debugLog.server(`${req.method} ${req.url}`);
+// Detailed request logging middleware
+app.use((req, res, next) => {
+    debugLog.server(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    debugLog.server(`Headers: ${JSON.stringify(req.headers)}`);
     next();
 });
 
 // Database connection middleware for serverless
-app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+app.use(async (_req: express.Request, _res: express.Response, next: express.NextFunction) => {
     try {
         await ensureDatabaseConnections();
         next();
@@ -24,6 +26,16 @@ app.use(async (_req: Request, _res: Response, next: NextFunction) => {
         debugLog.error('database-middleware', error);
         next(error);
     }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    debugLog.server('Health check endpoint called');
+    res.json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV
+    });
 });
 
 // CORS middleware
@@ -38,34 +50,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check route - should be before database middleware
-app.get('/api/health', async (_req: Request, res: Response) => {
-    try {
-        const redisClient = getRedisClient();
-        const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-        const redisStatus = redisClient?.isOpen ? 'connected' : 'disconnected';
-
-        res.json({
-            status: mongoStatus === 'connected' && redisStatus === 'connected' ? 'ok' : 'degraded',
-            timestamp: new Date().toISOString(),
-            services: {
-                mongodb: mongoStatus,
-                redis: redisStatus
-            }
-        });
-    } catch (err: any) {
-        debugLog.error('health-check', err);
-        res.status(500).json({
-            status: 'error',
-            timestamp: new Date().toISOString(),
-            error: 'Failed to check service health',
-            details: config.nodeEnv === 'development' ? err.message : undefined
-        });
-    }
-});
-
 // Debug route
-app.get('/debug', async (_req: Request, res: Response) => {
+app.get('/debug', async (_req: express.Request, res: express.Response) => {
     try {
         const redisClient = getRedisClient();
         res.json({
@@ -91,20 +77,21 @@ app.get('/debug', async (_req: Request, res: Response) => {
 });
 
 // API routes
+app.use('/api', routes);
 app.use('/api/blog-posts', blogPostRoutes);
 
 // Error handling middleware
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    debugLog.error('express', err);
-    if (!res.headersSent) {
-        res.status(500).json({
-            error: config.nodeEnv === 'development' ? err.message : 'Internal server error'
-        });
-    }
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    debugLog.error('express-error', err);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Handle 404s
-app.use((_req: Request, res: Response) => {
+app.use((_req: express.Request, res: express.Response) => {
     if (!res.headersSent) {
         res.status(404).json({ error: 'Not Found' });
     }
