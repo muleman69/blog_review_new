@@ -6,12 +6,11 @@ import blogPostRoutes from './routes/blogPost';
 import { debugLog } from './utils/debug';
 import { getRedisClient } from './utils/redis';
 import { ensureDatabaseConnections } from './server';
-import routes from './routes';
 
 const app = express();
 
 // Detailed request logging middleware
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
     debugLog.server(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     debugLog.server(`Headers: ${JSON.stringify(req.headers)}`);
     next();
@@ -29,7 +28,7 @@ app.use(async (_req: express.Request, _res: express.Response, next: express.Next
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
     debugLog.server('Health check endpoint called');
     res.json({ 
         status: 'ok',
@@ -77,11 +76,10 @@ app.get('/debug', async (_req: express.Request, res: express.Response) => {
 });
 
 // API routes
-app.use('/api', routes);
 app.use('/api/blog-posts', blogPostRoutes);
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     debugLog.error('express-error', err);
     res.status(500).json({
         error: 'Internal Server Error',
