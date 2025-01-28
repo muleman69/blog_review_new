@@ -7,7 +7,7 @@ import { debugLog } from './utils/debug';
 
 let isConnected = false;
 
-async function ensureDatabaseConnections() {
+export async function ensureDatabaseConnections() {
     try {
         if (isConnected) {
             debugLog.server('Using existing database connections');
@@ -32,7 +32,7 @@ async function ensureDatabaseConnections() {
         debugLog.server('Database connections established');
     } catch (error) {
         debugLog.error('database-connection', error);
-        throw error; // Let the handler deal with the error
+        throw error;
     }
 }
 
@@ -70,22 +70,39 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // For Vercel serverless deployment
-async function handler(req: Request, res: Response) {
+export default async function handler(req: Request, res: Response) {
     try {
-        debugLog.server(`Serverless request: ${req.method} ${req.path}`);
+        debugLog.server(`Serverless request: ${req.method} ${req.url}`);
         
         // Ensure database connections
         await ensureDatabaseConnections();
 
-        // Forward the request to Express app
-        return app(req, res);
-    } catch (error) {
-        debugLog.error('serverless-handler', error);
-        return res.status(500).json({
-            error: 'Internal Server Error',
-            message: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-}
+        // Create a promise to handle the Express app response
+        return new Promise((resolve, reject) => {
+            app(req, res);
+            
+            // Handle response completion
+            res.on('finish', () => {
+                resolve(undefined);
+            });
 
-export default handler; 
+            // Handle errors
+            res.on('error', (error: Error) => {
+                debugLog.error('express-error', error);
+                reject(error);
+            });
+        });
+    } catch (err) {
+        const error = err as Error;
+        debugLog.error('serverless-handler', error);
+        
+        // Don't send response if it's already been sent
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Internal Server Error',
+                message: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        return undefined;
+    }
+} 
