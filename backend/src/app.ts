@@ -1,10 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { createClient } from 'redis';
 import config from './config/index';
 import blogPostRoutes from './routes/blogPost';
 import { debugLog, dumpState } from './utils/debug';
+import { getRedisClient } from './utils/redis';
 
 const app = express();
 
@@ -22,84 +22,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize database connections only if URIs are provided
-let redisClient: ReturnType<typeof createClient> | null = null;
-
-async function initializeDatabases() {
-    debugLog.server('Starting database initialization...');
-    debugLog.server('System state:', dumpState());
-
-    // MongoDB connection
-    if (config.mongoUri) {
-        try {
-            const sanitizedUri = config.mongoUri.replace(/\/\/[^@]+@/, '//*****@');
-            debugLog.db('Attempting to connect to MongoDB...');
-            debugLog.db('MongoDB URI format:', sanitizedUri);
-
-            mongoose.set('debug', config.nodeEnv === 'development');
-            
-            await mongoose.connect(config.mongoUri);
-            debugLog.db('MongoDB connected successfully');
-            
-            mongoose.connection.on('error', (err) => {
-                debugLog.error('mongodb', err);
-            });
-
-            mongoose.connection.on('disconnected', () => {
-                debugLog.db('MongoDB disconnected, attempting to reconnect...');
-                mongoose.connect(config.mongoUri).catch(err => {
-                    debugLog.error('mongodb', err);
-                });
-            });
-
-            mongoose.connection.on('reconnected', () => {
-                debugLog.db('MongoDB reconnected successfully');
-            });
-
-        } catch (error) {
-            debugLog.error('mongodb', error);
-        }
-    }
-
-    // Redis connection
-    if (config.redisUrl) {
-        try {
-            debugLog.redis('Attempting to connect to Redis...');
-            
-            redisClient = createClient({
-                url: config.redisUrl
-            });
-
-            redisClient.on('error', (err) => {
-                debugLog.error('redis', err);
-            });
-
-            redisClient.on('connect', () => {
-                debugLog.redis('Redis client connected successfully');
-            });
-
-            redisClient.on('ready', () => {
-                debugLog.redis('Redis client ready for commands');
-            });
-
-            redisClient.on('reconnecting', () => {
-                debugLog.redis('Redis client reconnecting...');
-            });
-
-            await redisClient.connect();
-            debugLog.redis('Redis connection established');
-        } catch (error) {
-            debugLog.error('redis', error);
-            redisClient = null;
-        }
-    }
-}
-
-// Initialize databases
-initializeDatabases().catch(error => {
-    debugLog.error('database-init', error);
-});
-
 // Routes
 app.get('/', (_req: Request, res: Response) => {
     res.json({
@@ -111,6 +33,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 app.get('/debug', (_req: Request, res: Response) => {
+    const redisClient = getRedisClient();
     res.json({
         ...dumpState(),
         environment: config.nodeEnv,
@@ -128,6 +51,7 @@ app.get('/debug', (_req: Request, res: Response) => {
 });
 
 app.get('/api/health', (_req: Request, res: Response) => {
+    const redisClient = getRedisClient();
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),

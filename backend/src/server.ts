@@ -1,46 +1,62 @@
 import app from './app';
 import config from './config';
+import { connectMongoDB } from './utils/mongodb';
+import { connectRedis } from './utils/redis';
+import { debugLog, dumpState } from './utils/debug';
 
-// Log startup configuration (sanitized)
-console.log('Starting server with config:', {
-    nodeEnv: process.env.NODE_ENV,
-    port: config.port,
-    mongoUri: config.mongoUri ? 'Set' : 'Not set',
-    redisUrl: config.redisUrl ? 'Set' : 'Not set',
-    jwtSecret: config.jwtSecret ? 'Set' : 'Not set'
-});
+async function startServer() {
+    try {
+        debugLog.server('Starting server...');
+        debugLog.server('System state:', dumpState());
 
-const server = app.listen(config.port, () => {
-    console.log(`Server is running on port ${config.port}`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
-});
+        // Connect to MongoDB
+        if (!config.mongoUri) {
+            throw new Error('MongoDB URI is not configured');
+        }
+        await connectMongoDB(config.mongoUri);
 
-// Handle server errors
-server.on('error', (error: Error) => {
-    console.error('Server error:', error);
-    process.exit(1);
-});
+        // Connect to Redis
+        if (!config.redisUrl) {
+            throw new Error('Redis URL is not configured');
+        }
+        await connectRedis(config.redisUrl);
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Promise Rejection:', reason);
-    console.error('Promise:', promise);
-});
+        // Start the server
+        const server = app.listen(config.port, () => {
+            debugLog.server(`Server is running on port ${config.port}`);
+            debugLog.server(`Environment: ${config.nodeEnv}`);
+        });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    // Give the server time to finish current requests before exiting
-    server.close(() => {
+        // Handle server errors
+        server.on('error', (error: Error) => {
+            debugLog.error('server', error);
+            process.exit(1);
+        });
+
+        // Handle process termination
+        process.on('SIGTERM', () => {
+            debugLog.server('SIGTERM signal received. Closing server...');
+            server.close(() => {
+                debugLog.server('Server closed');
+                process.exit(0);
+            });
+        });
+
+        // Handle unhandled rejections
+        process.on('unhandledRejection', (reason: any) => {
+            debugLog.error('unhandled-rejection', reason);
+        });
+
+        // Handle uncaught exceptions
+        process.on('uncaughtException', (error: Error) => {
+            debugLog.error('uncaught-exception', error);
+            process.exit(1);
+        });
+
+    } catch (error) {
+        debugLog.error('startup', error);
         process.exit(1);
-    });
-});
+    }
+}
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received. Closing server...');
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-    });
-}); 
+startServer(); 
