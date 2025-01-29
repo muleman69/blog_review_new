@@ -21,19 +21,6 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.buildableblog.pro"
-        }
-      ],
-      "status": 301,
-      "headers": {
-        "Location": "https://buildableblog.pro/$1"
-      }
-    },
-    {
       "src": "/api/(.*)",
       "dest": "/backend/src/server.ts"
     },
@@ -49,10 +36,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
+      "dest": "/index.html"
     }
   ],
   "env": {
