@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { debugLog } from '../utils/debug';
 import { authMiddleware, authorize, AuthRequest } from '../middleware/auth';
-import BlogPostModel, { IBlogPost } from '../models/BlogPost';
+import BlogPostModel from '../models/BlogPost';
 
 const router = Router();
 
 // Log all requests to blog post routes
-router.use((req, res, next) => {
+router.use((req, _res, next) => {
   debugLog.route('Blog post route accessed', {
     method: req.method,
     path: req.path,
@@ -17,15 +17,15 @@ router.use((req, res, next) => {
 });
 
 // Get all blog posts
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
     debugLog.route('Fetching all blog posts');
     const posts = await BlogPostModel.find().sort({ createdAt: -1 });
     debugLog.route('Successfully fetched blog posts', { count: posts.length });
-    res.json(posts);
+    return res.json(posts);
   } catch (error) {
     debugLog.error('Failed to fetch blog posts', error);
-    res.status(500).json({ error: 'Failed to fetch blog posts' });
+    return res.status(500).json({ error: 'Failed to fetch blog posts' });
   }
 });
 
@@ -39,10 +39,10 @@ router.post('/', authMiddleware, authorize(['admin', 'writer']), async (req: Aut
     });
     await post.save();
     debugLog.route('Successfully created blog post', { postId: post._id });
-    res.status(201).json(post);
+    return res.status(201).json(post);
   } catch (error) {
     debugLog.error('Failed to create blog post', error);
-    res.status(500).json({ error: 'Failed to create blog post' });
+    return res.status(500).json({ error: 'Failed to create blog post' });
   }
 });
 
@@ -74,10 +74,10 @@ router.put('/:id', authMiddleware, authorize(['admin', 'writer']), async (req: A
     );
     
     debugLog.route('Successfully updated blog post', { postId: req.params.id });
-    res.json(updatedPost);
+    return res.json(updatedPost);
   } catch (error) {
     debugLog.error('Failed to update blog post', error);
-    res.status(500).json({ error: 'Failed to update blog post' });
+    return res.status(500).json({ error: 'Failed to update blog post' });
   }
 });
 
@@ -93,10 +93,10 @@ router.delete('/:id', authMiddleware, authorize(['admin']), async (req: AuthRequ
     }
 
     debugLog.route('Successfully deleted blog post', { postId: req.params.id });
-    res.json({ message: 'Blog post deleted successfully' });
+    return res.json({ message: 'Blog post deleted successfully' });
   } catch (error) {
     debugLog.error('Failed to delete blog post', error);
-    res.status(500).json({ error: 'Failed to delete blog post' });
+    return res.status(500).json({ error: 'Failed to delete blog post' });
   }
 });
 
