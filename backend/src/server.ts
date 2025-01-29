@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 });
 
 // Error handling middleware
-app.use((err: Error, req: any, res: any, next: any) => {
+app.use((err: Error, _req: any, res: any, _next: any) => {
   debugLog.error('Unhandled error', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
@@ -38,7 +38,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   debugLog.route('Health check requested');
   try {
     res.status(200).json({
@@ -66,10 +66,16 @@ app.use('/api/blog-posts', async (req, res, next) => {
   }
 });
 
-// Start server
-app.listen(port, () => {
-  debugLog.server(`Server started on port ${port}`, {
-    env: process.env.NODE_ENV,
-    nodeVersion: process.version
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    debugLog.server(`Server started on port ${port}`, {
+      env: process.env.NODE_ENV,
+      nodeVersion: process.version
+    });
   });
-}); 
+}
+
+// For Vercel serverless deployment
+export default app;
+export { ensureDatabaseConnections }; 

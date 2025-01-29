@@ -6,11 +6,12 @@ import path from 'path';
 const serverDebug = debug('server');
 const routeDebug = debug('route');
 const dbDebug = debug('db');
+const redisDebug = debug('redis');
 const errorDebug = debug('error');
 
 // Enable all debug logs in development
 if (process.env.NODE_ENV !== 'production') {
-  debug.enable('server:*,route:*,db:*,error:*');
+  debug.enable('server:*,route:*,db:*,redis:*,error:*');
 }
 
 // Create logs directory if it doesn't exist
@@ -45,6 +46,12 @@ export const debugLog = {
   db: (message: string, data?: any) => {
     const log = formatLog('DB', message, data);
     dbDebug(log);
+    accessLogStream.write(log);
+  },
+
+  redis: (message: string, data?: any) => {
+    const log = formatLog('REDIS', message, data);
+    redisDebug(log);
     accessLogStream.write(log);
   },
 
@@ -89,14 +96,14 @@ export const debugLog = {
 };
 
 export function dumpState() {
-    return {
-        env: process.env.NODE_ENV,
-        timestamp: new Date().toISOString(),
-        memory: process.memoryUsage(),
-        uptime: process.uptime(),
-        pid: process.pid,
-        platform: process.platform,
-        nodeVersion: process.version,
-        debugEnabled: debug.enabled('app:*')
-    };
+  return {
+    env: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+    memory: process.memoryUsage(),
+    uptime: process.uptime(),
+    pid: process.pid,
+    platform: process.platform,
+    nodeVersion: process.version,
+    debugEnabled: debug.enabled('*')
+  };
 } 
