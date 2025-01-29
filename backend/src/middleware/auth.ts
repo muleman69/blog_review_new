@@ -1,89 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import config from '../config';
 import { debugLog } from '../utils/debug';
-import { validateAuthConfig } from '../config';
+import config from '../config';
 
-interface JwtPayload {
+export function validateAuthConfig() {
+  if (!config.jwtSecret) {
+    const error = 'Missing required JWT_SECRET environment variable';
+    debugLog.error(error);
+    throw new Error(error);
+  }
+}
+
+export interface AuthRequest extends Request {
+  user?: {
     id: string;
     email: string;
-    role?: string;
+    role: string;
+  };
 }
 
-export const auth = function(req: Request, res: Response, next: NextFunction): void {
-    try {
-        // Validate JWT configuration before processing
-        validateAuthConfig();
-        
-        // Ensure JWT secret is configured
-        if (!config.jwtSecret) {
-            debugLog.error('auth', 'JWT secret is not configured');
-            res.status(500).json({ error: 'Server configuration error' });
-            return;
-        }
-
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        
-        if (!token) {
-            res.status(401).json({ error: 'Authentication required' });
-            return;
-        }
-
-        try {
-            // Verify and decode token with type safety
-            const decoded = jwt.verify(token, config.jwtSecret) as unknown;
-            
-            // Validate payload structure
-            if (!isValidJwtPayload(decoded)) {
-                throw new Error('Invalid token payload');
-            }
-
-            // Add user info to request
-            req.user = {
-                id: decoded.id,
-                email: decoded.email,
-                role: decoded.role
-            };
-
-            next();
-        } catch (err) {
-            debugLog.error('auth', err);
-            res.status(401).json({ error: 'Invalid or expired token' });
-            return;
-        }
-    } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        debugLog.error('auth-middleware', err);
-        res.status(500).json({
-            error: 'Authentication Configuration Error',
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-            timestamp: new Date().toISOString()
-        });
-        return;
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No authorization header' });
     }
-}
 
-// Type guard for JWT payload
-function isValidJwtPayload(payload: unknown): payload is JwtPayload {
-    return (
-        typeof payload === 'object' &&
-        payload !== null &&
-        'id' in payload &&
-        'email' in payload &&
-        typeof (payload as JwtPayload).id === 'string' &&
-        typeof (payload as JwtPayload).email === 'string' &&
-        (!('role' in payload) || typeof (payload as JwtPayload).role === 'string')
-    );
-}
-
-// Extend Express Request type to include user
-declare global {
-    namespace Express {
-        interface Request {
-            user?: JwtPayload;
-        }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
     }
-}
+
+    if (!config.jwtSecret) {
+      debugLog.error('JWT_SECRET not configured');
+      return res.status(500).json({ error: 'Authentication not configured' });
+    }
+
+    const decoded = jwt.verify(token, config.jwtSecret) as {
+      id: string;
+      email: string;
+      role: string;
+    };
+
+    req.user = decoded;
+    debugLog.route('User authenticated', { userId: decoded.id, role: decoded.role });
+    next();
+  } catch (error) {
+    debugLog.error('Authentication failed', error);
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
 // Role-based authorization middleware
 export const authorize = (roles: string[]) => {
