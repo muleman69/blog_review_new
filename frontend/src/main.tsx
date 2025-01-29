@@ -20,15 +20,27 @@ window.onerror = (message, source, lineno, colno, error) => {
   debug.error('window', 'Global error:', { message, source, lineno, colno, error });
 };
 
-// Debug API configuration
-const apiUrl = import.meta.env.VITE_API_URL || '/api';
-debug.log('config', 'API URL:', apiUrl);
+// Get API URL from environment or default to relative path
+const apiUrl = process.env.VITE_API_URL || '/api';
+debug.log('config', 'Using API URL:', apiUrl);
 
-// Health check on startup
-fetch(`${apiUrl}/health`)
-  .then(response => response.json())
-  .then(data => debug.log('health', 'Backend health check:', data))
-  .catch(error => debug.error('health', 'Backend health check failed:', error));
+// Health check on startup with better error handling
+const checkHealth = async () => {
+  try {
+    const response = await fetch(`${apiUrl}/health`);
+    if (!response.ok) {
+      throw new Error(`Health check failed with status: ${response.status}`);
+    }
+    const data = await response.json();
+    debug.log('health', 'Backend health check:', data);
+  } catch (error) {
+    debug.error('health', 'Backend health check failed:', error);
+    // Don't throw here, just log the error
+  }
+};
+
+// Run health check
+checkHealth();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

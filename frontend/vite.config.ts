@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: '/',
+    base: isProd ? '/' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -27,15 +27,9 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom'],
             editor: ['@monaco-editor/react'],
           },
-          assetFileNames: (assetInfo) => {
-            if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
-            if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name)) {
-              return 'assets/fonts/[name]-[hash][extname]';
-            }
-            return 'assets/[name]-[hash][extname]';
-          },
-          chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: 'assets/js/[name]-[hash].js'
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js'
         }
       }
     },
@@ -53,5 +47,8 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       include: ['@monaco-editor/react'],
     },
+    define: {
+      'process.env.VITE_API_URL': JSON.stringify(isProd ? 'https://buildableblog.pro/api' : 'http://localhost:3001/api')
+    }
   };
 }); 
