@@ -7,7 +7,8 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "dist",
+        "zeroConfig": true
       }
     },
     {
@@ -21,14 +22,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/src/server.ts",
-      "headers": {
-        "x-vercel-deployment-url": "${VERCEL_URL}",
-        "x-request-path": "$1"
-      }
-    },
-    {
-      "handle": "filesystem"
+      "dest": "/backend/src/server.ts"
     },
     {
       "src": "/assets/(.*)",
@@ -38,18 +32,11 @@
       }
     },
     {
-      "src": "/(.*)\\.(?:ico|png|jpg|jpeg|gif|svg|css|js|json)",
-      "dest": "/$1.$2",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      }
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
+      "dest": "/index.html"
     }
   ],
   "env": {

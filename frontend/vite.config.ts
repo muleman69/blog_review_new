@@ -7,10 +7,11 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProd = mode === 'production';
+  const apiUrl = isProd ? 'https://buildableblog.pro' : 'http://localhost:3001';
 
   return {
     plugins: [react()],
-    base: isProd ? '/' : '/',
+    base: '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -19,17 +20,14 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: !isProd,
+      sourcemap: true,
       manifest: true,
       rollupOptions: {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             editor: ['@monaco-editor/react'],
-          },
-          assetFileNames: 'assets/[name]-[hash][extname]',
-          chunkFileNames: 'assets/[name]-[hash].js',
-          entryFileNames: '[name]-[hash].js'
+          }
         }
       }
     },
@@ -38,7 +36,7 @@ export default defineConfig(({ mode }) => {
       open: true,
       proxy: {
         '/api': {
-          target: isProd ? 'https://buildableblog.pro' : 'http://localhost:3001',
+          target: apiUrl,
           changeOrigin: true,
           secure: isProd
         }
@@ -48,7 +46,10 @@ export default defineConfig(({ mode }) => {
       include: ['@monaco-editor/react'],
     },
     define: {
-      'process.env.VITE_API_URL': JSON.stringify(isProd ? 'https://buildableblog.pro/api' : 'http://localhost:3001/api')
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env.VITE_API_URL': JSON.stringify(apiUrl),
+      'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
+      'process.env.VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0')
     }
   };
 }); 
