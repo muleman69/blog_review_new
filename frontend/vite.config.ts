@@ -7,7 +7,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProd = mode === 'production';
-  const apiUrl = isProd ? 'https://buildableblog.pro' : 'http://localhost:3001';
+  const baseApiUrl = isProd ? 'https://buildableblog.pro' : 'http://localhost:3001';
 
   return {
     plugins: [react()],
@@ -36,9 +36,10 @@ export default defineConfig(({ mode }) => {
       open: true,
       proxy: {
         '/api': {
-          target: apiUrl,
+          target: baseApiUrl,
           changeOrigin: true,
-          secure: isProd
+          secure: isProd,
+          rewrite: (path) => path.replace(/^\/api/, '/api')
         }
       }
     },
@@ -47,7 +48,8 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(mode),
-      'process.env.VITE_API_URL': JSON.stringify(apiUrl),
+      'process.env.VITE_API_URL': JSON.stringify(`${baseApiUrl}/api`),
+      'process.env.VITE_BASE_URL': JSON.stringify(baseApiUrl),
       'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
       'process.env.VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0')
     }
