@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: '/',
+    base: isProd ? '/' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -27,7 +27,10 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             editor: ['@monaco-editor/react'],
-          }
+          },
+          assetFileNames: 'assets/[name]-[hash][extname]',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js'
         }
       }
     },
