@@ -9,25 +9,22 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/health",
-      "dest": "backend/src/server.ts"
+      "source": "/health",
+      "destination": "/backend/src/server.ts"
     },
     {
-      "src": "/auth/(.*)",
-      "dest": "backend/src/server.ts"
+      "source": "/auth/:path*",
+      "destination": "/backend/src/server.ts"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "backend/src/server.ts"
+      "source": "/api/:path*",
+      "destination": "/backend/src/server.ts"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
