@@ -32,11 +32,11 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
+    "vercel-build": "vite build",
     "serve": "vite preview",
     "test": "vitest --config ./vitest.config.ts",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "vercel-build": "vite build"
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
