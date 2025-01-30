@@ -5,8 +5,9 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "npm run build"
+        "zeroConfig": true,
+        "buildCommand": "cd frontend && npm install && npm run build",
+        "outputDirectory": "frontend/dist"
       }
     },
     {
@@ -17,19 +18,19 @@
   "rewrites": [
     {
       "source": "/health",
-      "destination": "/backend/src/server.ts"
+      "destination": "/api/backend/src/server"
     },
     {
       "source": "/auth/:path*",
-      "destination": "/backend/src/server.ts"
+      "destination": "/api/backend/src/server"
     },
     {
       "source": "/api/:path*",
-      "destination": "/backend/src/server.ts"
+      "destination": "/api/backend/src/server"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/$1"
     }
   ],
   "headers": [
