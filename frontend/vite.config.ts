@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
+      emptyOutDir: true,
       sourcemap: true,
       manifest: true,
       rollupOptions: {
@@ -34,6 +35,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
+      host: true,
       open: true,
       proxy: {
         '/api': {
