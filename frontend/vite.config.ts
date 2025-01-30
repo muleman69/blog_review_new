@@ -18,9 +18,10 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
+      external: [],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'react-toastify'],
           editor: ['@monaco-editor/react'],
         },
         assetFileNames: 'assets/[name].[hash][extname]',
