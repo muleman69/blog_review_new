@@ -15,27 +15,25 @@ const app = express();
 app.use(debugMiddleware);
 
 // CORS middleware
-app.use(cors({
-    origin: [
-        'https://buildableblog.pro',
-        'https://www.buildableblog.pro',
-        'http://localhost:3000'
-    ],
+const corsOptions = {
+    origin: ['https://buildableblog.pro', 'https://www.buildableblog.pro', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
-    maxAge: 86400, // 24 hours
+    maxAge: 86400,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
-}));
+};
+
+app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight for all routes
+app.options('*', cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Mount auth routes before other routes
-app.use('/auth', authRoutes);
-
 // Health check endpoint (before database middleware)
-app.get('/health', (_req, res) => {
+app.get('/health', cors(corsOptions), (_req, res) => {
     try {
         console.log('[Health Check] Endpoint called');
         debugLog.server('Health check endpoint called');
@@ -59,8 +57,11 @@ app.get('/health', (_req, res) => {
     }
 });
 
+// Mount auth routes with CORS
+app.use('/auth', cors(corsOptions), authRoutes);
+
 // Database connection middleware for protected routes
-app.use('/api/blog-posts/*', async (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use('/api/blog-posts/*', cors(corsOptions), async (_req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
         debugLog.server('Attempting database connection...');
         await ensureDatabaseConnections();
@@ -107,8 +108,8 @@ app.get('/debug', async (_req: express.Request, res: express.Response) => {
     }
 });
 
-// API routes
-app.use('/api/blog-posts', blogPostRoutes);
+// API routes with CORS
+app.use('/api/blog-posts', cors(corsOptions), blogPostRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

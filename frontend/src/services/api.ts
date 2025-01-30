@@ -1,4 +1,4 @@
-import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError, AxiosHeaders } from 'axios';
 
 const baseURL = import.meta.env.VITE_API_URL;
 
@@ -14,9 +14,17 @@ const api = axios.create({
 // Add a request interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Ensure CORS headers are sent
+    if (!(config.headers instanceof AxiosHeaders)) {
+      config.headers = new AxiosHeaders(config.headers);
+    }
+
+    config.headers.set('Access-Control-Allow-Origin', import.meta.env.VITE_BASE_URL);
+    config.headers.set('Access-Control-Allow-Credentials', 'true');
+
     const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
     return config;
   },
