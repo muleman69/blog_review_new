@@ -3,7 +3,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import config from './config/index';
 import blogPostRoutes from './routes/blogPost';
-import authRoutes from './routes/auth';
+import authRoutes from './routes/auth.js';
 import { debugLog } from './utils/debug';
 import { getRedisClient } from './utils/redis';
 import { ensureDatabaseConnections } from './server';
