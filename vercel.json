@@ -4,20 +4,52 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "cd frontend && npm install",
   "framework": "vite",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://www.buildableblog.pro"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/assets/(.*)\\.js",
-      "headers": { "content-type": "application/javascript" },
+      "headers": { 
+        "content-type": "application/javascript",
+        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
+      },
       "dest": "/assets/$1.js"
     },
     {
       "src": "/manifest\\.json",
-      "headers": { "content-type": "application/json" },
+      "headers": { 
+        "content-type": "application/json",
+        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
+      },
       "dest": "/manifest.json"
     },
     {
       "src": "/assets/(.*)",
-      "headers": { "cache-control": "public,max-age=31536000,immutable" },
+      "headers": { 
+        "cache-control": "public,max-age=31536000,immutable",
+        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
+      },
       "dest": "/assets/$1"
     },
     {

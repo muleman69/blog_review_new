@@ -15,7 +15,11 @@ app.use(debugMiddleware);
 
 // CORS middleware
 app.use(cors({
-    origin: '*', // Temporarily allow all origins for debugging
+    origin: [
+        'https://buildableblog.pro',
+        'https://www.buildableblog.pro',
+        'http://localhost:3000'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
     maxAge: 86400, // 24 hours
