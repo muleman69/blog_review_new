@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { debugLog } from './utils/debug';
-import { ensureDatabaseConnections } from './db';
+import { ensureDatabaseConnections } from './utils/db';
+import authRoutes from './routes/auth';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -38,7 +39,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/api/health', (_req, res) => {
+app.get('/health', (_req, res) => {
   debugLog.route('Health check requested');
   try {
     res.status(200).json({
@@ -53,6 +54,9 @@ app.get('/api/health', (_req, res) => {
     res.status(500).json({ error: 'Health check failed' });
   }
 });
+
+// Mount auth routes
+app.use('/auth', authRoutes);
 
 // Database middleware for relevant routes
 app.use('/api/blog-posts', async (req, res, next) => {
