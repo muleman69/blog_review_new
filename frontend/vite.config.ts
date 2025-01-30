@@ -7,7 +7,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
-    base: '/',
+    base: './',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -24,9 +24,9 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom'],
             editor: ['@monaco-editor/react'],
           },
-          assetFileNames: 'assets/[name]-[hash][extname]',
-          chunkFileNames: 'assets/[name]-[hash].js',
-          entryFileNames: '[name]-[hash].js'
+          assetFileNames: './assets/[name]-[hash][extname]',
+          chunkFileNames: './assets/[name]-[hash].js',
+          entryFileNames: './[name]-[hash].js'
         }
       }
     },
