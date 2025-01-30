@@ -19,7 +19,6 @@ app.use(cors({
     origin: [
         'https://buildableblog.pro',
         'https://www.buildableblog.pro',
-        'https://api.buildableblog.pro',
         'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -36,56 +35,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/auth', authRoutes);
 
 // Health check endpoint (before database middleware)
-app.get('/api/health', (_req, res) => {
+app.get('/health', (_req, res) => {
     try {
         console.log('[Health Check] Endpoint called');
         debugLog.server('Health check endpoint called');
-        
-        // Set explicit headers
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Cache-Control', 'no-store');
         
         const healthInfo = {
             status: 'ok',
             timestamp: new Date().toISOString(),
             env: process.env.NODE_ENV || 'unknown',
-            version: '1.0.0',
-            debug: {
-                nodeVersion: process.version,
-                platform: process.platform,
-                memory: process.memoryUsage(),
-                uptime: process.uptime(),
-                pid: process.pid
-            },
-            request: {
-                headers: _req.headers,
-                url: _req.url,
-                method: _req.method
-            }
+            version: '1.0.0'
         };
 
-        console.log('[Health Check] Sending response:', healthInfo);
-        debugLog.server('Health check response:', healthInfo);
-        
         return res.status(200).json(healthInfo);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error('[Health Check] Error:', err);
         debugLog.error('health-check', err);
         
-        const errorResponse = {
+        return res.status(500).json({
             error: 'Health Check Failed',
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-            timestamp: new Date().toISOString(),
-            path: _req.path,
-            method: _req.method
-        };
-        
-        console.error('[Health Check] Error Response:', errorResponse);
-        debugLog.server('Health check error response:', errorResponse);
-        
-        return res.status(500).json(errorResponse);
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
+        });
     }
 });
 
