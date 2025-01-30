@@ -16,7 +16,7 @@ app.use(debugMiddleware);
 
 // CORS middleware
 const corsOptions = {
-    origin: ['https://buildableblog.pro', 'https://www.buildableblog.pro', 'http://localhost:3000'],
+    origin: ['https://www.buildableblog.pro'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
     maxAge: 86400,
@@ -57,11 +57,8 @@ app.get('/health', cors(corsOptions), (_req, res) => {
     }
 });
 
-// Mount auth routes with CORS
-app.use('/auth', cors(corsOptions), authRoutes);
-
-// Database connection middleware for protected routes
-app.use('/api/blog-posts/*', cors(corsOptions), async (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+// Database connection middleware for all routes
+app.use(async (_req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
         debugLog.server('Attempting database connection...');
         await ensureDatabaseConnections();
@@ -107,6 +104,9 @@ app.get('/debug', async (_req: express.Request, res: express.Response) => {
         });
     }
 });
+
+// Mount auth routes with CORS
+app.use('/auth', cors(corsOptions), authRoutes);
 
 // API routes with CORS
 app.use('/api/blog-posts', cors(corsOptions), blogPostRoutes);
