@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { ValidationIssueExtended } from '../services/validationService';
 
 interface AISuggestion {
@@ -11,19 +11,12 @@ interface UseAISuggestionsResult {
   suggestions: AISuggestion[];
   isLoading: boolean;
   error: Error | null;
-  getSuggestions: (content: string, issue: ValidationIssueExtended) => Promise<void>;
+  getSuggestions: (params: { content: string; issue: ValidationIssueExtended }) => Promise<void>;
 }
 
 export const useAISuggestions = (): UseAISuggestionsResult => {
-  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const getSuggestions = useCallback(async (content: string, issue: ValidationIssueExtended) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async ({ content, issue }: { content: string; issue: ValidationIssueExtended }) => {
       const response = await fetch('/api/ai-suggestions', {
         method: 'POST',
         headers: {
@@ -52,20 +45,18 @@ export const useAISuggestions = (): UseAISuggestionsResult => {
         throw new Error('Failed to get AI suggestions');
       }
 
-      const data = await response.json();
-      setSuggestions(data.suggestions);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      console.error('Error getting AI suggestions:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      return response.json();
+    },
+  });
+
+  const getSuggestions = async (params: { content: string; issue: ValidationIssueExtended }) => {
+    await mutation.mutateAsync(params);
+  };
 
   return {
-    suggestions,
-    isLoading,
-    error,
+    suggestions: mutation.data?.suggestions || [],
+    isLoading: mutation.isPending,
+    error: mutation.error as Error | null,
     getSuggestions,
   };
 };

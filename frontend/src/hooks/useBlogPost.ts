@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import blogPostService, { BlogPost, CreateBlogPostDTO, UpdateBlogPostDTO } from '../services/api/blogPost';
 
 interface UseBlogPostReturn {
@@ -13,91 +13,63 @@ interface UseBlogPostReturn {
 }
 
 export function useBlogPost(): UseBlogPostReturn {
-    const [posts, setPosts] = useState<BlogPost[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
+    const queryClient = useQueryClient();
+    const queryKey = ['blog-posts'];
 
-    const refreshPosts = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await blogPostService.getAll();
-            setPosts(data);
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to fetch posts'));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    const { data: posts = [], isLoading, error } = useQuery({
+        queryKey,
+        queryFn: () => blogPostService.getAll(),
+    });
+
+    const createMutation = useMutation({
+        mutationFn: (data: CreateBlogPostDTO) => blogPostService.create(data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: UpdateBlogPostDTO }) => 
+            blogPostService.update(id, data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => blogPostService.delete(id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    });
+
+    const validateMutation = useMutation({
+        mutationFn: (id: string) => blogPostService.validate(id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    });
 
     const createPost = async (data: CreateBlogPostDTO) => {
-        try {
-            setLoading(true);
-            setError(null);
-            await blogPostService.create(data);
-            await refreshPosts();
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to create post'));
-            throw err;
-        } finally {
-            setLoading(false);
-        }
+        await createMutation.mutateAsync(data);
     };
 
     const updatePost = async (id: string, data: UpdateBlogPostDTO) => {
-        try {
-            setLoading(true);
-            setError(null);
-            await blogPostService.update(id, data);
-            await refreshPosts();
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to update post'));
-            throw err;
-        } finally {
-            setLoading(false);
-        }
+        await updateMutation.mutateAsync({ id, data });
     };
 
     const deletePost = async (id: string) => {
-        try {
-            setLoading(true);
-            setError(null);
-            await blogPostService.delete(id);
-            await refreshPosts();
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to delete post'));
-            throw err;
-        } finally {
-            setLoading(false);
-        }
+        await deleteMutation.mutateAsync(id);
     };
 
     const validatePost = async (id: string) => {
-        try {
-            setLoading(true);
-            setError(null);
-            await blogPostService.validate(id);
-            await refreshPosts();
-        } catch (err) {
-            setError(err instanceof Error ? err : new Error('Failed to validate post'));
-            throw err;
-        } finally {
-            setLoading(false);
-        }
+        await validateMutation.mutateAsync(id);
     };
 
-    useEffect(() => {
-        refreshPosts();
-    }, [refreshPosts]);
+    const refreshPosts = async () => {
+        await queryClient.invalidateQueries({ queryKey });
+    };
 
     return {
         posts,
-        loading,
-        error,
+        loading: isLoading,
+        error: error as Error | null,
         createPost,
         updatePost,
         deletePost,
         validatePost,
-        refreshPosts
+        refreshPosts,
     };
 } 

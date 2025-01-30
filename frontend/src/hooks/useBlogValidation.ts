@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import ValidationService, { ValidationIssueExtended } from '../services/validationService';
 import useDebounce from './useDebounce';
 
@@ -13,35 +13,23 @@ export default function useBlogValidation({
   delay = 1000,
   onValidationComplete 
 }: UseBlogValidationProps) {
-  const [issues, setIssues] = useState<ValidationIssueExtended[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
   const debouncedContent = useDebounce(content, delay);
 
-  useEffect(() => {
-    const validateContent = async () => {
+  const { data: issues = [], isLoading: isValidating } = useQuery({
+    queryKey: ['validation', debouncedContent],
+    queryFn: async () => {
       if (!debouncedContent) {
-        setIssues([]);
-        return;
+        return [];
       }
-
-      setIsValidating(true);
-      try {
-        const validationIssues = await ValidationService.validateContent(
-          debouncedContent, 
-          'technical_accuracy'
-        );
-        setIssues(validationIssues);
-        onValidationComplete?.(validationIssues);
-      } catch (error) {
-        console.error('Validation failed:', error);
-        setIssues([]);
-      } finally {
-        setIsValidating(false);
-      }
-    };
-
-    validateContent();
-  }, [debouncedContent, onValidationComplete]);
+      const validationIssues = await ValidationService.validateContent(
+        debouncedContent, 
+        'technical_accuracy'
+      );
+      onValidationComplete?.(validationIssues);
+      return validationIssues;
+    },
+    enabled: Boolean(debouncedContent),
+  });
 
   return { issues, isValidating };
 } 
