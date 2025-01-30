@@ -2,6 +2,10 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
+  readonly VITE_BASE_URL: string
+  readonly NODE_ENV: 'development' | 'production'
+  readonly BUILD_TIME: string
+  readonly VERSION: string
   readonly VITE_DEEPSEEK_API_KEY: string
   readonly VITE_ENABLE_AI_SUGGESTIONS: string
   readonly VITE_ENABLE_REAL_TIME_VALIDATION: string
