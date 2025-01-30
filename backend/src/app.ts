@@ -18,12 +18,13 @@ app.use(cors({
     origin: [
         'https://buildableblog.pro',
         'https://www.buildableblog.pro',
+        'https://api.buildableblog.pro',
         'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
     maxAge: 86400, // 24 hours
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
 }));
 
 // Body parsing middleware
