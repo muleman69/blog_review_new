@@ -3,6 +3,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import config from './config/index';
 import blogPostRoutes from './routes/blogPost';
+import authRoutes from './routes/auth';
 import { debugLog } from './utils/debug';
 import { getRedisClient } from './utils/redis';
 import { ensureDatabaseConnections } from './server';
@@ -30,6 +31,9 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Mount auth routes before other routes
+app.use('/auth', authRoutes);
 
 // Health check endpoint (before database middleware)
 app.get('/api/health', (_req, res) => {
