@@ -7,8 +7,8 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProd = mode === 'production';
-  const baseUrl = isProd ? 'https://buildableblog.pro' : 'http://localhost:3000';
-  const apiUrl = isProd ? 'https://buildableblog.pro/api' : 'http://localhost:3001/api';
+  const baseUrl = env.VITE_BASE_URL || (isProd ? 'https://buildableblog.pro' : 'http://localhost:3000');
+  const apiUrl = env.VITE_API_URL || (isProd ? `${baseUrl}/api` : 'http://localhost:3001/api');
 
   return {
     plugins: [react()],
