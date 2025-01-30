@@ -8,10 +8,10 @@ import { debugLogger } from './utils/debug';
 
 // Initialize app with environment info
 debugLogger.info('App', 'Initializing application', {
-  environment: process.env.NODE_ENV,
-  apiUrl: process.env.VITE_API_URL,
-  buildTime: process.env.BUILD_TIME,
-  version: process.env.VERSION
+  environment: import.meta.env.MODE,
+  apiUrl: import.meta.env.VITE_API_URL,
+  buildTime: import.meta.env.BUILD_TIME,
+  version: import.meta.env.VERSION
 });
 
 // Add global error boundary
@@ -25,8 +25,8 @@ window.onerror = (message, source, lineno, colno, error) => {
   });
 };
 
-// Get API URL from environment or default to relative path
-const apiUrl = process.env.VITE_API_URL || '/api';
+// Get API URL from environment
+const apiUrl = import.meta.env.VITE_API_URL;
 debugLogger.info('Config', 'API configuration', { apiUrl });
 
 // Health check with detailed logging
@@ -67,7 +67,7 @@ const reportWebVitalsToDebug = (metric: any) => {
 };
 
 // Create debug UI (only in development)
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   const debugButton = document.createElement('button');
   debugButton.innerHTML = 'Show Debug Logs';
   debugButton.style.position = 'fixed';
