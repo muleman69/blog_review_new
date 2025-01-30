@@ -5,6 +5,8 @@ import Router from './router';
 import reportWebVitals from './reportWebVitals';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { debugLogger } from './utils/debug';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './config/queryClient';
 
 // Initialize app with environment info
 debugLogger.info('App', 'Initializing application', {
@@ -92,7 +94,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <Router />
+      <QueryClientProvider client={queryClient}>
+        <Router />
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
