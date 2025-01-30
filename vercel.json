@@ -7,8 +7,7 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "zeroConfig": true
+        "distDir": "dist"
       }
     },
     {
@@ -22,13 +21,12 @@
       "dest": "/backend/src/server.ts"
     },
     {
-      "src": "^/assets/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "continue": true
+      "handle": "filesystem"
     },
     {
-      "src": "^/(.*)\\.(js|css|json|ico|png|jpg|jpeg|svg|webp)$",
-      "dest": "/$1.$2"
+      "src": "/assets/(.*)",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/assets/$1"
     },
     {
       "src": "/(.*)",

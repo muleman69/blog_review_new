@@ -37,7 +37,7 @@ export const EnhancedValidationPanel: React.FC<EnhancedValidationPanelProps> = (
 
   useEffect(() => {
     if (selectedIssue) {
-      getSuggestions(content, selectedIssue);
+      getSuggestions({ content, issue: selectedIssue });
     }
   }, [selectedIssue, content, getSuggestions]);
 
