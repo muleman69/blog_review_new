@@ -1,15 +1,10 @@
 {
   "version": 2,
+  "framework": "vite",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
   "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "zeroConfig": true,
-        "buildCommand": "cd frontend && npm install && npm run build",
-        "outputDirectory": "frontend/dist"
-      }
-    },
     {
       "src": "backend/src/server.ts",
       "use": "@vercel/node"
@@ -18,19 +13,15 @@
   "rewrites": [
     {
       "source": "/health",
-      "destination": "/api/backend/src/server"
+      "destination": "/api/server"
     },
     {
       "source": "/auth/:path*",
-      "destination": "/api/backend/src/server"
+      "destination": "/api/server"
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/backend/src/server"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "destination": "/api/server"
     }
   ],
   "headers": [

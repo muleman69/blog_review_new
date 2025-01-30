@@ -5,7 +5,6 @@ import { ensureDatabaseConnections } from './utils/db';
 import authRoutes from './routes/auth';
 
 const app = express();
-const port = process.env.PORT || 3001;
 
 // Middleware to log all requests
 app.use((req, res, next) => {
@@ -28,7 +27,7 @@ app.use((err: Error, _req: any, res: any, _next: any) => {
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://buildableblog.pro', 'https://www.buildableblog.pro']
+    ? ['https://blog-review-new-jan30.vercel.app']
     : 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -39,7 +38,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
+app.get('/api/health', (_req, res) => {
   debugLog.route('Health check requested');
   try {
     res.status(200).json({
@@ -56,7 +55,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Mount auth routes
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Database middleware for relevant routes
 app.use('/api/blog-posts', async (req, res, next) => {
@@ -70,16 +69,5 @@ app.use('/api/blog-posts', async (req, res, next) => {
   }
 });
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => {
-    debugLog.server(`Server started on port ${port}`, {
-      env: process.env.NODE_ENV,
-      nodeVersion: process.version
-    });
-  });
-}
-
 // For Vercel serverless deployment
-export default app;
-export { ensureDatabaseConnections }; 
+export default app; 
