@@ -6,8 +6,26 @@
   "framework": "vite",
   "routes": [
     {
+      "src": "/assets/(.*)\\.js",
+      "headers": { "content-type": "application/javascript" },
+      "dest": "/assets/$1.js"
+    },
+    {
+      "src": "/manifest\\.json",
+      "headers": { "content-type": "application/json" },
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/assets/(.*)",
+      "headers": { "cache-control": "public,max-age=31536000,immutable" },
+      "dest": "/assets/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/index.html"
     }
   ]
 } 

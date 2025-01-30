@@ -17,7 +17,11 @@ export default defineConfig({
     assetsDir: 'assets',
     emptyOutDir: true,
     sourcemap: true,
+    manifest: true,
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html')
+      },
       output: {
         manualChunks: {
           vendor: [
@@ -35,9 +39,10 @@ export default defineConfig({
           ],
           editor: ['@monaco-editor/react']
         },
-        assetFileNames: 'assets/[name].[hash][extname]',
+        format: 'es',
+        entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
-        entryFileNames: '[name].[hash].js'
+        assetFileNames: 'assets/[name].[hash][extname]'
       }
     }
   },
