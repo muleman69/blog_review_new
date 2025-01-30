@@ -5,9 +5,11 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production';
+  
   return {
     plugins: [react()],
-    base: './',
+    base: isProd ? '/' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -46,6 +48,7 @@ export default defineConfig(({ mode }) => {
       include: ['@monaco-editor/react'],
     },
     define: {
+      __BASE_URL__: JSON.stringify(isProd ? 'https://buildableblog.pro' : 'http://localhost:3000'),
       'process.env.NODE_ENV': JSON.stringify(mode),
       'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
       'process.env.VERSION': JSON.stringify(process.env.npm_package_version || '1.0.0')

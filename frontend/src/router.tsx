@@ -33,9 +33,15 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: '*',
+        element: <ErrorBoundary><div>Page Not Found</div></ErrorBoundary>,
+      }
     ],
   },
-]);
+], {
+  basename: '/'
+});
 
 const Router: React.FC = () => {
   return (
