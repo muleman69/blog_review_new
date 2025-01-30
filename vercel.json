@@ -2,15 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/src/app.ts",
-      "use": "@vercel/node"
+      "src": "backend/src/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["backend/src/**"]
+      }
     },
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
         "buildCommand": "cd frontend && npm install && npm run build",
-        "outputDirectory": "frontend/dist"
+        "outputDirectory": "dist"
       }
     }
   ],
@@ -37,50 +40,15 @@
       ]
     }
   ],
-  "routes": [
-    {
-      "src": "/health",
-      "dest": "backend/src/app.ts"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "backend/src/app.ts"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/src/app.ts"
-    },
-    {
-      "src": "/assets/(.*)\\.js",
-      "headers": { 
-        "content-type": "application/javascript",
-        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
-      },
-      "dest": "/assets/$1.js"
-    },
-    {
-      "src": "/manifest\\.json",
-      "headers": { 
-        "content-type": "application/json",
-        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
-      },
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/assets/(.*)",
-      "headers": { 
-        "cache-control": "public,max-age=31536000,immutable",
-        "Access-Control-Allow-Origin": "https://www.buildableblog.pro"
-      },
-      "dest": "/assets/$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/auth/:path*", "destination": "/api/auth/:path*" },
+    { "source": "/api/:path*", "destination": "/api/:path*" }
   ],
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet ./frontend"
+  "functions": {
+    "api/**/*": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 } 
