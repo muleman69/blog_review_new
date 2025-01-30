@@ -10,7 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-    },
+    }
   },
   build: {
     outDir: 'dist',
@@ -18,11 +18,22 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      external: [],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'react-toastify'],
-          editor: ['@monaco-editor/react'],
+          vendor: [
+            'react', 
+            'react-dom', 
+            'react-router-dom', 
+            'react-toastify',
+            'web-vitals',
+            'workbox-cacheable-response',
+            'workbox-core',
+            'workbox-expiration',
+            'workbox-precaching',
+            'workbox-routing',
+            'workbox-strategies'
+          ],
+          editor: ['@monaco-editor/react']
         },
         assetFileNames: 'assets/[name].[hash][extname]',
         chunkFileNames: 'assets/[name].[hash].js',
