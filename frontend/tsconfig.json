@@ -15,7 +15,7 @@
     "jsx": "react-jsx",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "types": ["vite/client"]
+    "types": []
   },
   "include": ["src", "src/env.d.ts"],
   "exclude": ["node_modules"]
