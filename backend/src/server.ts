@@ -37,8 +37,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check endpoint
-app.get('/api/health', (_req, res) => {
+// Health check endpoint (both with and without /api prefix)
+app.get(['/health', '/api/health'], (_req, res) => {
   debugLog.route('Health check requested');
   try {
     res.status(200).json({
@@ -54,11 +54,12 @@ app.get('/api/health', (_req, res) => {
   }
 });
 
-// Mount auth routes
+// Mount auth routes (both with and without /api prefix)
+app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
 // Database middleware for relevant routes
-app.use('/api/blog-posts', async (req, res, next) => {
+app.use(['/api/blog-posts', '/blog-posts'], async (req, res, next) => {
   debugLog.route('Database route accessed', { path: req.path });
   try {
     await ensureDatabaseConnections();

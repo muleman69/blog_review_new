@@ -27,6 +27,19 @@
       "destination": "/index.html"
     }
   ],
+  "routes": [
+    {
+      "src": "/auth/(.*)",
+      "dest": "/api/server"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/server"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
