@@ -10,8 +10,10 @@ const app = express();
 app.use((req, res, next) => {
   console.log('--------------------');
   console.log('Incoming Request Details:');
-  console.log(`Path: ${req.path}`);
-  console.log(`Method: ${req.method}`);
+  console.log(`Original URL:`, req.originalUrl);
+  console.log(`Base URL:`, req.baseUrl);
+  console.log(`Path:`, req.path);
+  console.log(`Method:`, req.method);
   console.log(`Headers:`, req.headers);
   console.log(`Body:`, req.body);
   console.log('--------------------');
@@ -26,28 +28,7 @@ app.use((err: Error, _req: any, res: any, _next: any) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow localhost and any vercel.app subdomain
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://blog-review-new.vercel.app',
-      'https://blog-review-new-jan30.vercel.app'
-    ];
-    
-    // Allow any Vercel preview URL
-    if (origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
@@ -60,16 +41,13 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
+app.get(['/health', '/api/health'], (_req, res) => {
   console.log('Health check endpoint hit');
   res.status(200).json({ status: 'ok' });
 });
 
 // Mount auth routes with explicit paths
-app.use('/auth', (req, res, next) => {
-  console.log('Auth route hit:', req.path);
-  next();
-}, authRoutes);
+app.use(['/auth', '/api/auth'], authRoutes);
 
 // Catch-all route for debugging
 app.use('*', (req, res) => {
@@ -77,7 +55,9 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     requestedPath: req.originalUrl,
-    method: req.method
+    method: req.method,
+    baseUrl: req.baseUrl,
+    path: req.path
   });
 });
 
