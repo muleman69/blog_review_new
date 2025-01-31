@@ -22,7 +22,11 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: '*',
+  origin: [
+    'https://blog-review-new.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
