@@ -20,12 +20,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Error handling middleware
-app.use((err: Error, _req: any, res: any, _next: any) => {
-  debugLog.error('Unhandled error', err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
-
 // CORS configuration
 const corsOptions = {
   origin: '*',
@@ -40,6 +34,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Database connection middleware for auth and blog routes
+app.use(['/auth', '/api/auth', '/api/blog-posts', '/blog-posts'], async (req, res, next) => {
+  console.log('Database middleware accessed:', req.path);
+  try {
+    await ensureDatabaseConnections();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    res.status(503).json({ error: 'Database connection failed. Please try again.' });
+  }
+});
+
 // Health check endpoint
 app.get(['/health', '/api/health'], (_req, res) => {
   console.log('Health check endpoint hit');
@@ -47,9 +53,18 @@ app.get(['/health', '/api/health'], (_req, res) => {
 });
 
 // Mount auth routes with explicit paths
-app.use(['/auth', '/api/auth'], authRoutes);
+app.use(['/auth', '/api/auth'], (req, res, next) => {
+  console.log('Auth route accessed:', req.path);
+  next();
+}, authRoutes);
 
-// Catch-all route for debugging
+// Blog posts routes
+app.use(['/api/blog-posts', '/blog-posts'], (req, res, next) => {
+  console.log('Blog posts route accessed:', req.path);
+  next();
+});
+
+// Catch-all route for debugging (must be last)
 app.use('*', (req, res) => {
   console.log('404 - Route not found:', req.originalUrl);
   res.status(404).json({
@@ -61,16 +76,19 @@ app.use('*', (req, res) => {
   });
 });
 
-// Database middleware for relevant routes
-app.use(['/api/blog-posts', '/blog-posts'], async (req, res, next) => {
-  debugLog.route('Database route accessed', { path: req.path });
-  try {
-    await ensureDatabaseConnections();
-    next();
-  } catch (error) {
-    debugLog.error('Database connection failed', error);
-    res.status(503).json({ error: 'Database connection failed' });
-  }
+// Error handling middleware (must be after all routes)
+app.use((err: Error, req: any, res: any, _next: any) => {
+  console.error('Unhandled error:', err);
+  console.error('Request details:', {
+    method: req.method,
+    path: req.path,
+    headers: req.headers,
+    body: req.body
+  });
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: err.message
+  });
 });
 
 // For Vercel serverless deployment
