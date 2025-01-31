@@ -6,15 +6,15 @@ import authRoutes from './routes/auth';
 
 const app = express();
 
-// Middleware to log all requests
+// Detailed request logging middleware
 app.use((req, res, next) => {
-  debugLog.request(req, 'Incoming request');
-  
-  // Log response when it's sent
-  res.on('finish', () => {
-    debugLog.response(res, 'Response sent');
-  });
-  
+  console.log('--------------------');
+  console.log('Incoming Request Details:');
+  console.log(`Path: ${req.path}`);
+  console.log(`Method: ${req.method}`);
+  console.log(`Headers:`, req.headers);
+  console.log(`Body:`, req.body);
+  console.log('--------------------');
   next();
 });
 
@@ -27,36 +27,42 @@ app.use((err: Error, _req: any, res: any, _next: any) => {
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://blog-review-new-jan30.vercel.app']
+    ? ['https://blog-review-new.vercel.app', 'https://blog-review-new-jan30.vercel.app']
     : 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: true,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check endpoint (both with and without /api prefix)
-app.get(['/health', '/api/health'], (_req, res) => {
-  debugLog.route('Health check requested');
-  try {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      version: process.env.npm_package_version || '1.0.0'
-    });
-    debugLog.route('Health check successful');
-  } catch (error) {
-    debugLog.error('Health check failed', error);
-    res.status(500).json({ error: 'Health check failed' });
-  }
+// OPTIONS handler for preflight requests
+app.options('*', cors(corsOptions));
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  console.log('Health check endpoint hit');
+  res.status(200).json({ status: 'ok' });
 });
 
-// Mount auth routes (both with and without /api prefix)
-app.use('/auth', authRoutes);
-app.use('/api/auth', authRoutes);
+// Mount auth routes with explicit paths
+app.use('/auth', (req, res, next) => {
+  console.log('Auth route hit:', req.path);
+  next();
+}, authRoutes);
+
+// Catch-all route for debugging
+app.use('*', (req, res) => {
+  console.log('404 - Route not found:', req.originalUrl);
+  res.status(404).json({
+    error: 'Route not found',
+    requestedPath: req.originalUrl,
+    method: req.method
+  });
+});
 
 // Database middleware for relevant routes
 app.use(['/api/blog-posts', '/blog-posts'], async (req, res, next) => {

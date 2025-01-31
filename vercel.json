@@ -11,10 +11,6 @@
   ],
   "rewrites": [
     {
-      "source": "/health",
-      "destination": "/api/server"
-    },
-    {
       "source": "/auth/:path*",
       "destination": "/api/server"
     },
@@ -23,30 +19,21 @@
       "destination": "/api/server"
     },
     {
+      "source": "/health",
+      "destination": "/api/server"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "routes": [
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/server"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/server"
-    },
-    {
-      "handle": "filesystem"
-    }
-  ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://blog-review-new-jan30.vercel.app"
+          "value": "*"
         },
         {
           "key": "Access-Control-Allow-Methods",

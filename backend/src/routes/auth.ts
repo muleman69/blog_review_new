@@ -1,10 +1,19 @@
 import express from 'express';
 import { debugLog } from '../utils/debug';
-import { ensureDatabaseConnections } from '../server';
+import { ensureDatabaseConnections } from '../utils/db';
 import { User } from '../models/User';
 import bcrypt from 'bcrypt';
 
 const router = express.Router();
+
+// Debug middleware for auth routes
+router.use((req, res, next) => {
+    console.log('Auth Route Debug:');
+    console.log('Path:', req.path);
+    console.log('Method:', req.method);
+    console.log('Body:', req.body);
+    next();
+});
 
 // Middleware to ensure database connection
 router.use(async (req, res, next) => {
@@ -22,11 +31,15 @@ router.use(async (req, res, next) => {
 
 // Registration endpoint
 router.post('/register', async (req, res) => {
+    console.log('Register endpoint hit');
+    console.log('Request body:', req.body);
+    
     try {
         const { email, password, role } = req.body;
 
         // Validate input
         if (!email || !password || !role) {
+            console.log('Missing required fields:', { email: !!email, password: !!password, role: !!role });
             return res.status(400).json({
                 error: 'Missing required fields',
                 message: 'Email, password, and role are required'
@@ -36,6 +49,7 @@ router.post('/register', async (req, res) => {
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
+            console.log('User already exists:', email);
             return res.status(409).json({
                 error: 'User already exists',
                 message: 'A user with this email already exists'
@@ -54,6 +68,7 @@ router.post('/register', async (req, res) => {
         });
 
         await user.save();
+        console.log('User created successfully:', email);
 
         // Return success without sensitive data
         res.status(201).json({
@@ -64,7 +79,7 @@ router.post('/register', async (req, res) => {
             }
         });
     } catch (error: any) {
-        debugLog.error('register', error);
+        console.error('Registration error:', error);
         res.status(500).json({
             error: 'Registration failed',
             message: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error'
