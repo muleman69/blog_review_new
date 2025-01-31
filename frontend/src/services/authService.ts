@@ -26,20 +26,26 @@ const USER_KEY = 'user_data';
 class AuthService {
   static async login(data: LoginData): Promise<void> {
     try {
+      console.log('Attempting login with:', { email: data.email });
       const response = await api.post<AuthResponse>('/auth/login', data);
+      console.log('Login successful:', { userId: response.data.user.id });
       this.setToken(response.data.token);
       this.setUser(response.data.user);
     } catch (error) {
+      console.error('Login failed:', error);
       throw this.handleError(error);
     }
   }
 
   static async register(data: RegisterData): Promise<void> {
     try {
+      console.log('Attempting registration with:', { email: data.email, role: data.role });
       const response = await api.post<AuthResponse>('/auth/register', data);
+      console.log('Registration successful');
       // Don't automatically log in after registration
       // Let the user log in manually
     } catch (error) {
+      console.error('Registration failed:', error);
       throw this.handleError(error);
     }
   }
@@ -84,14 +90,14 @@ class AuthService {
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
-      const message = error.response.data.message || 'An error occurred';
+      const message = error.response.data?.message || 'Authentication failed';
       return new Error(message);
     } else if (error.request) {
       // The request was made but no response was received
-      return new Error('No response from server');
+      return new Error('No response from server. Please try again.');
     } else {
       // Something happened in setting up the request that triggered an Error
-      return new Error('Request failed');
+      return new Error('Request failed. Please check your connection.');
     }
   }
 }

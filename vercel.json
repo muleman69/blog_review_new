@@ -19,7 +19,15 @@
       "dest": "backend/src/server.ts"
     },
     {
+      "src": "/api/health",
+      "dest": "backend/src/server.ts"
+    },
+    {
       "src": "/auth/(.*)",
+      "dest": "backend/src/server.ts"
+    },
+    {
+      "src": "/api/auth/(.*)",
       "dest": "backend/src/server.ts"
     },
     {
@@ -27,8 +35,11 @@
       "dest": "backend/src/server.ts"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "frontend/dist/$1"
+      "dest": "frontend/dist/index.html"
     }
   ],
   "headers": [
@@ -45,7 +56,11 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Accept"
+          "value": "X-Requested-With, Content-Type, Accept, Authorization"
+        },
+        {
+          "key": "Access-Control-Max-Age",
+          "value": "86400"
         }
       ]
     }
