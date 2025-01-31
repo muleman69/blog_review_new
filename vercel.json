@@ -5,7 +5,7 @@
   "installCommand": "cd frontend && npm install",
   "builds": [
     {
-      "src": "backend/src/server.ts",
+      "src": "backend/api/**/*.ts",
       "use": "@vercel/node"
     },
     {
@@ -16,23 +16,23 @@
   "routes": [
     {
       "src": "/health",
-      "dest": "backend/src/server.ts"
+      "dest": "/api/health"
     },
     {
       "src": "/api/health",
-      "dest": "backend/src/server.ts"
+      "dest": "/api/health"
     },
     {
       "src": "/auth/(.*)",
-      "dest": "backend/src/server.ts"
+      "dest": "/api/auth/$1"
     },
     {
       "src": "/api/auth/(.*)",
-      "dest": "backend/src/server.ts"
+      "dest": "/api/auth/$1"
     },
     {
       "src": "/api/(.*)",
-      "dest": "backend/src/server.ts"
+      "dest": "/api/$1"
     },
     {
       "handle": "filesystem"

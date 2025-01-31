@@ -2,6 +2,13 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { debugLog } from '../src/utils/debug';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // Log the health check request
+    console.log('Health check endpoint hit:', {
+        method: req.method,
+        url: req.url,
+        headers: req.headers
+    });
+
     try {
         console.log('[Health Check] Endpoint called');
         debugLog.server('Health check endpoint called');
@@ -9,8 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const healthInfo = {
             status: 'ok',
             timestamp: new Date().toISOString(),
-            env: process.env.NODE_ENV || 'unknown',
-            version: '1.0.0'
+            environment: process.env.NODE_ENV,
+            version: process.env.npm_package_version || '1.0.0'
         };
 
         return res.status(200).json(healthInfo);
