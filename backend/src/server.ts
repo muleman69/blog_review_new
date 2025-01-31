@@ -26,21 +26,38 @@ app.use((err: Error, _req: any, res: any, _next: any) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://blog-review-new.vercel.app', 'https://blog-review-new-jan30.vercel.app']
-    : 'http://localhost:3000',
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost and any vercel.app subdomain
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://blog-review-new.vercel.app',
+      'https://blog-review-new-jan30.vercel.app'
+    ];
+    
+    // Allow any Vercel preview URL
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  preflightContinue: true,
+  preflightContinue: false,
   optionsSuccessStatus: 204
 };
 
+// Apply CORS middleware before any routes
 app.use(cors(corsOptions));
 app.use(express.json());
-
-// OPTIONS handler for preflight requests
-app.options('*', cors(corsOptions));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
