@@ -5,7 +5,15 @@
   "installCommand": "cd frontend && npm install",
   "builds": [
     {
-      "src": "backend/api/**/*.ts",
+      "src": "backend/api/auth/register.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "backend/api/health.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "backend/api/auth/[...path].ts",
       "use": "@vercel/node"
     },
     {
@@ -15,36 +23,29 @@
   ],
   "routes": [
     {
-      "src": "/health",
-      "dest": "/api/health"
+      "src": "/api/auth/register",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/backend/api/auth/register.ts"
     },
     {
       "src": "/api/health",
-      "dest": "/api/health"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/auth/$1"
+      "dest": "/backend/api/health.ts"
     },
     {
       "src": "/api/auth/(.*)",
-      "dest": "/api/auth/$1"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/backend/api/auth/[...path].ts"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/dist/index.html"
+      "dest": "/frontend/dist/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
