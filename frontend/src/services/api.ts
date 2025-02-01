@@ -8,10 +8,19 @@ if (!baseURL) {
   console.error('API URL is not configured. Please check your environment variables.');
 }
 
+// Log API configuration on startup
 console.log('API Configuration:', {
   baseURL,
   env: import.meta.env.MODE,
-  isDev: import.meta.env.DEV
+  isDev: import.meta.env.DEV,
+  fullConfig: {
+    baseURL,
+    timeout: 10000,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  }
 });
 
 const api = axios.create({
@@ -26,6 +35,11 @@ const api = axios.create({
 // Add a request interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Ensure URL starts with /
+    if (config.url && !config.url.startsWith('/')) {
+      config.url = `/${config.url}`;
+    }
+
     // Log all requests in detail
     console.log('Making API Request:', {
       method: config.method?.toUpperCase(),
@@ -55,6 +69,7 @@ api.interceptors.response.use(
   (response: AxiosResponse) => {
     console.log('API Response Success:', {
       url: response.config.url,
+      fullUrl: `${baseURL}${response.config.url}`,
       status: response.status,
       data: response.data
     });
@@ -70,7 +85,8 @@ api.interceptors.response.use(
       statusText: error.response?.statusText,
       headers: error.config?.headers,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
+      stack: error.stack
     });
 
     if (error.code === 'ECONNABORTED') {

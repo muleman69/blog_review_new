@@ -27,7 +27,7 @@ class AuthService {
   static async login(data: LoginData): Promise<void> {
     try {
       console.log('Attempting login with:', { email: data.email });
-      const response = await api.post<AuthResponse>('/auth/login', data);
+      const response = await api.post<AuthResponse>('auth/login', data);
       console.log('Login successful:', { userId: response.data.user.id });
       this.setToken(response.data.token);
       this.setUser(response.data.user);
@@ -39,20 +39,32 @@ class AuthService {
 
   static async register(data: RegisterData): Promise<void> {
     try {
-      console.log('Attempting registration with:', { email: data.email, role: data.role });
-      const response = await api.post<AuthResponse>('/auth/register', data);
-      console.log('Registration successful');
+      console.log('Attempting registration with:', { 
+        email: data.email, 
+        role: data.role,
+        apiUrl: import.meta.env.VITE_API_URL 
+      });
+      
+      const response = await api.post<AuthResponse>('auth/register', data);
+      console.log('Registration successful:', {
+        status: response.status,
+        data: response.data
+      });
       // Don't automatically log in after registration
       // Let the user log in manually
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('Registration failed:', {
+        error,
+        apiUrl: import.meta.env.VITE_API_URL,
+        env: import.meta.env.MODE
+      });
       throw this.handleError(error);
     }
   }
 
   static async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout');
+      await api.post('auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

@@ -57,6 +57,10 @@ const RegisterForm: React.FC = () => {
         [name]: ''
       }));
     }
+    // Clear server error when user makes changes
+    if (serverError) {
+      setServerError('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,11 +74,25 @@ const RegisterForm: React.FC = () => {
     try {
       setIsSubmitting(true);
       const { confirmPassword, ...registerData } = formData;
+      
+      console.log('Submitting registration form:', {
+        email: registerData.email,
+        role: registerData.role,
+        apiUrl: import.meta.env.VITE_API_URL
+      });
+
       await AuthService.register(registerData);
-      NotificationService.success('Registration successful! Please sign in.');
-      navigate('/login');
+      
+      NotificationService.success('Registration successful! Please sign in to continue.');
+      // Ensure we're navigating to the login page after successful registration
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 1500);
     } catch (error) {
-      NotificationService.error(error instanceof Error ? error.message : 'Registration failed');
+      console.error('Registration form submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      setServerError(errorMessage);
+      NotificationService.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -89,6 +107,7 @@ const RegisterForm: React.FC = () => {
         <p className="mt-2 text-center text-sm text-gray-600">
           Already have an account?{' '}
           <button
+            type="button"
             onClick={() => navigate('/login')}
             className="font-medium text-blue-600 hover:text-blue-500"
           >
@@ -99,7 +118,7 @@ const RegisterForm: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
